@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Trophy, Star, Target, Award } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
@@ -33,6 +32,7 @@ const allAchievements = [
     iconName: 'Trophy',
     xpReward: 150,
     unlocked: false,
+    unlockedAt: new Date(0),
     progress: 3,
     target: 5
   },
@@ -42,7 +42,8 @@ const allAchievements = [
     description: 'Create your first budget',
     iconName: 'Target',
     xpReward: 100,
-    unlocked: false
+    unlocked: false,
+    unlockedAt: new Date(0)
   },
   {
     id: '5',
@@ -51,6 +52,7 @@ const allAchievements = [
     iconName: 'Award',
     xpReward: 200,
     unlocked: false,
+    unlockedAt: new Date(0),
     progress: 1,
     target: 3
   },
@@ -61,6 +63,7 @@ const allAchievements = [
     iconName: 'Zap',
     xpReward: 500,
     unlocked: false,
+    unlockedAt: new Date(0),
     progress: 3,
     target: 5
   }
@@ -83,7 +86,7 @@ export default function Achievements() {
   const achievementProgress = (unlockedAchievements.length / allAchievements.length) * 100;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScrollView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -226,7 +229,7 @@ export default function Achievements() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 
@@ -234,6 +237,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+    
   },
   loadingContainer: {
     flex: 1,
@@ -252,6 +256,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    paddingTop: 60,
   },
   title: {
     fontSize: 32,

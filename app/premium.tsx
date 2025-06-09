@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Crown, Check, Star, Zap } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -30,7 +29,7 @@ export default function Premium() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScrollView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -155,7 +154,7 @@ export default function Premium() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 

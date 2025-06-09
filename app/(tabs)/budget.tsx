@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Plus, DollarSign, TrendingUp, TrendingDown, ChartPie as PieChart, Target } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
@@ -84,7 +83,7 @@ export default function Budget() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScrollView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -299,7 +298,7 @@ export default function Budget() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 
@@ -314,6 +313,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    paddingTop: 60
   },
   title: {
     fontSize: 32,

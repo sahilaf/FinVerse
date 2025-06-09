@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Search, Filter, BookOpen } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
@@ -32,7 +31,7 @@ export default function Learn() {
   const premiumLessons = filteredLessons.filter(lesson => lesson.isPremium);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScrollView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -130,7 +129,7 @@ export default function Learn() {
                 <LessonCard
                   key={lesson.id}
                   lesson={lesson}
-                  onPress={(lesson) => router.push(`/lesson/${lesson.id}`)}
+                  onPress={(lesson) => router.push(`/lesson/${lesson.id}` as any)}
                   isCompleted={user?.completedLessons.includes(lesson.id)}
                 />
               ))}
@@ -155,7 +154,7 @@ export default function Learn() {
                     if (user?.subscriptionStatus === 'free') {
                       router.push('/premium');
                     } else {
-                      router.push(`/lesson/${lesson.id}`);
+                      router.push(`/lesson/${lesson.id}` as any);
                     }
                   }}
                   isCompleted={user?.completedLessons.includes(lesson.id)}
@@ -175,7 +174,7 @@ export default function Learn() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 
@@ -190,6 +189,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    paddingTop: 60,
   },
   title: {
     fontSize: 32,

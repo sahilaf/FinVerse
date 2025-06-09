@@ -15,10 +15,11 @@ export default function TabLayout() {
           paddingBottom: 8,
           paddingTop: 8,
           height: 80,
+          paddingHorizontal: 10,
         },
         tabBarLabelStyle: {
           fontFamily: 'Inter-Medium',
-          fontSize: 12,
+          fontSize: 10,
           marginTop: 4,
         },
       }}>

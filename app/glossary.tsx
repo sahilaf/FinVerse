@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, BookOpen, ArrowLeft } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { glossaryTerms } from '@/data/glossary';
@@ -21,7 +20,7 @@ export default function Glossary() {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScrollView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -112,7 +111,7 @@ export default function Glossary() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 

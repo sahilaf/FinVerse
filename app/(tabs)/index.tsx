@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { BookOpen, TrendingUp, Calculator, Sparkles } from 'lucide-react-native';
+import { BookOpen,  Calculator, Sparkles } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
 import XPProgressCard from '@/components/XPProgressCard';
 import LessonCard from '@/components/LessonCard';
@@ -35,7 +34,7 @@ export default function Dashboard() {
   const recentAchievements = user.achievements.slice(-3);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScrollView style={styles.container}>
       <ScrollView 
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -97,7 +96,7 @@ export default function Dashboard() {
                   if (lesson.isPremium && user.subscriptionStatus === 'free') {
                     router.push('/premium');
                   } else {
-                    router.push(`/lesson/${lesson.id}`);
+                    router.push(`/lesson/${lesson.id}` as any);
                   }
                 }}
                 isCompleted={user.completedLessons.includes(lesson.id)}
@@ -142,7 +141,7 @@ export default function Dashboard() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 
@@ -150,6 +149,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+    
   },
   loadingContainer: {
     flex: 1,
@@ -167,6 +167,7 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+    paddingTop: 60,
   },
   greeting: {
     fontSize: 16,

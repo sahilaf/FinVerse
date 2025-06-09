@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { User, Settings, Crown, BookOpen, Award, CircleHelp as HelpCircle, LogOut, ChevronRight, Globe, Bell, Shield, Star } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -98,7 +97,7 @@ export default function Profile() {
   const completionRate = Math.round((user.completedLessons.length / 6) * 100);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScrollView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <LinearGradient
@@ -196,7 +195,7 @@ export default function Profile() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 
@@ -204,6 +203,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+    
   },
   loadingContainer: {
     flex: 1,
@@ -221,6 +221,7 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+    paddingTop: 60
   },
   profileSection: {
     flexDirection: 'row',
