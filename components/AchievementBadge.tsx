@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { Star, Flame, Trophy, Target, Award, Zap } from 'lucide-react-native';
 import { Achievement } from '@/types';
 
@@ -20,57 +20,23 @@ const iconMap = {
 export default function AchievementBadge({ achievement, size = 'medium' }: AchievementBadgeProps) {
   const IconComponent = iconMap[achievement.iconName as keyof typeof iconMap] || Star;
   const iconSize = size === 'small' ? 16 : size === 'medium' ? 20 : 24;
-  const containerSize = size === 'small' ? 40 : size === 'medium' ? 48 : 56;
+  const containerSize = size === 'small' ? 'w-10 h-10' : size === 'medium' ? 'w-12 h-12' : 'w-14 h-14';
   
   return (
-    <View style={styles.container}>
-      <View style={[styles.badge, { width: containerSize, height: containerSize }]}>
+    <View className="items-center max-w-24">
+      <View className={`${containerSize} bg-secondary-500 rounded-full items-center justify-center mb-2 shadow-lg`}>
         <IconComponent size={iconSize} color="#FFF" />
       </View>
-      <Text style={[styles.title, size === 'small' && styles.smallTitle]}>
+      <Text className={`font-inter-semibold text-gray-900 dark:text-white text-center mb-1 ${
+        size === 'small' ? 'text-xs' : 'text-xs'
+      }`}>
         {achievement.title}
       </Text>
       {size !== 'small' && (
-        <Text style={styles.description} numberOfLines={2}>
+        <Text className="text-xs font-inter text-gray-600 dark:text-gray-400 text-center leading-3" numberOfLines={2}>
           {achievement.description}
         </Text>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    maxWidth: 100,
-  },
-  badge: {
-    backgroundColor: '#F59E0B',
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-    shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  title: {
-    fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  smallTitle: {
-    fontSize: 10,
-  },
-  description: {
-    fontSize: 10,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-});

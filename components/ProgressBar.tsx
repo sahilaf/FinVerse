@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 
 interface ProgressBarProps {
   progress: number; // 0 to 1
@@ -15,27 +15,17 @@ export default function ProgressBar({
   fillColor = '#10B981'
 }: ProgressBarProps) {
   return (
-    <View style={[styles.container, { height, backgroundColor }]}>
+    <View 
+      className="rounded-full overflow-hidden"
+      style={{ height, backgroundColor }}
+    >
       <View 
-        style={[
-          styles.fill, 
-          { 
-            width: `${Math.max(0, Math.min(100, progress * 100))}%`,
-            backgroundColor: fillColor
-          }
-        ]} 
+        className="h-full rounded-full"
+        style={{ 
+          width: `${Math.max(0, Math.min(100, progress * 100))}%`,
+          backgroundColor: fillColor
+        }}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-});

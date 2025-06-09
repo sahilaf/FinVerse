@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Search, Filter, BookOpen } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import LessonCard from '@/components/LessonCard';
 import { lessons } from '@/data/lessons';
 
@@ -12,6 +13,8 @@ const difficulties = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 export default function Learn() {
   const { user } = useUserData();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
@@ -31,55 +34,61 @@ export default function Learn() {
   const premiumLessons = filteredLessons.filter(lesson => lesson.isPremium);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Learn</Text>
-          <Text style={styles.subtitle}>Master your financial future</Text>
+        <View className="px-5 py-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 pt-16">
+          <Text className="text-3xl font-poppins-bold text-gray-900 dark:text-white mb-1">Learn</Text>
+          <Text className="text-base font-inter text-gray-600 dark:text-gray-400">
+            Master your financial future
+          </Text>
         </View>
 
         {/* Search and Filters */}
-        <View style={styles.searchSection}>
-          <View style={styles.searchContainer}>
-            <Search size={20} color="#6B7280" />
+        <View className="flex-row px-5 py-4 gap-3">
+          <View className="flex-1 flex-row items-center bg-white dark:bg-gray-800 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700">
+            <Search size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
             <TextInput
-              style={styles.searchInput}
+              className="flex-1 text-base font-inter text-gray-900 dark:text-white ml-3"
               placeholder="Search lessons..."
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={isDark ? '#9CA3AF' : '#9CA3AF'}
             />
           </View>
           
           <TouchableOpacity 
-            style={styles.filterButton}
+            className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 items-center justify-center"
             onPress={() => setShowFilters(!showFilters)}
           >
-            <Filter size={20} color={showFilters ? '#10B981' : '#6B7280'} />
+            <Filter size={20} color={showFilters ? '#10B981' : (isDark ? '#9CA3AF' : '#6B7280')} />
           </TouchableOpacity>
         </View>
 
         {/* Filters */}
         {showFilters && (
-          <View style={styles.filtersContainer}>
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}>Category</Text>
+          <View className="bg-white dark:bg-gray-800 px-5 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <View className="mb-4">
+              <Text className="text-sm font-inter-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Category
+              </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.filterOptions}>
+                <View className="flex-row gap-2">
                   {categories.map((category) => (
                     <TouchableOpacity
                       key={category}
-                      style={[
-                        styles.filterChip,
-                        selectedCategory === category && styles.activeFilterChip
-                      ]}
+                      className={`px-4 py-2 rounded-full ${
+                        selectedCategory === category 
+                          ? 'bg-primary-500' 
+                          : 'bg-gray-100 dark:bg-gray-700'
+                      }`}
                       onPress={() => setSelectedCategory(category)}
                     >
-                      <Text style={[
-                        styles.filterChipText,
-                        selectedCategory === category && styles.activeFilterChipText
-                      ]}>
+                      <Text className={`text-sm font-inter-medium ${
+                        selectedCategory === category 
+                          ? 'text-white' 
+                          : 'text-gray-600 dark:text-gray-400'
+                      }`}>
                         {category}
                       </Text>
                     </TouchableOpacity>
@@ -88,23 +97,27 @@ export default function Learn() {
               </ScrollView>
             </View>
 
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}>Difficulty</Text>
+            <View className="mb-4">
+              <Text className="text-sm font-inter-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Difficulty
+              </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.filterOptions}>
+                <View className="flex-row gap-2">
                   {difficulties.map((difficulty) => (
                     <TouchableOpacity
                       key={difficulty}
-                      style={[
-                        styles.filterChip,
-                        selectedDifficulty === difficulty && styles.activeFilterChip
-                      ]}
+                      className={`px-4 py-2 rounded-full ${
+                        selectedDifficulty === difficulty 
+                          ? 'bg-primary-500' 
+                          : 'bg-gray-100 dark:bg-gray-700'
+                      }`}
                       onPress={() => setSelectedDifficulty(difficulty)}
                     >
-                      <Text style={[
-                        styles.filterChipText,
-                        selectedDifficulty === difficulty && styles.activeFilterChipText
-                      ]}>
+                      <Text className={`text-sm font-inter-medium ${
+                        selectedDifficulty === difficulty 
+                          ? 'text-white' 
+                          : 'text-gray-600 dark:text-gray-400'
+                      }`}>
                         {difficulty}
                       </Text>
                     </TouchableOpacity>
@@ -116,13 +129,15 @@ export default function Learn() {
         )}
 
         {/* Content */}
-        <View style={styles.content}>
+        <View className="p-5">
           {/* Free Lessons */}
           {freeLessons.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
+            <View className="mb-8">
+              <View className="flex-row items-center mb-4">
                 <BookOpen size={20} color="#10B981" />
-                <Text style={styles.sectionTitle}>Free Lessons</Text>
+                <Text className="text-xl font-poppins-semibold text-gray-900 dark:text-white ml-2">
+                  Free Lessons
+                </Text>
               </View>
               
               {freeLessons.map((lesson) => (
@@ -138,12 +153,14 @@ export default function Learn() {
 
           {/* Premium Lessons */}
           {premiumLessons.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.premiumBadge}>
-                  <Text style={styles.premiumText}>PREMIUM</Text>
+            <View className="mb-8">
+              <View className="flex-row items-center mb-4">
+                <View className="bg-secondary-500 px-2 py-1 rounded mr-2">
+                  <Text className="text-xs font-inter-bold text-white tracking-wide">PREMIUM</Text>
                 </View>
-                <Text style={styles.sectionTitle}>Premium Lessons</Text>
+                <Text className="text-xl font-poppins-semibold text-gray-900 dark:text-white">
+                  Premium Lessons
+                </Text>
               </View>
               
               {premiumLessons.map((lesson) => (
@@ -164,10 +181,12 @@ export default function Learn() {
           )}
 
           {filteredLessons.length === 0 && (
-            <View style={styles.emptyState}>
-              <BookOpen size={48} color="#9CA3AF" />
-              <Text style={styles.emptyTitle}>No lessons found</Text>
-              <Text style={styles.emptySubtitle}>
+            <View className="items-center justify-center py-16">
+              <BookOpen size={48} color={isDark ? '#9CA3AF' : '#9CA3AF'} />
+              <Text className="text-lg font-poppins-semibold text-gray-900 dark:text-white mt-4 mb-2">
+                No lessons found
+              </Text>
+              <Text className="text-sm font-inter text-gray-600 dark:text-gray-400 text-center">
                 Try adjusting your search or filters
               </Text>
             </View>
@@ -177,147 +196,3 @@ export default function Learn() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    paddingTop: 60,
-  },
-  title: {
-    fontSize: 32,
-    fontFamily: 'Poppins-Bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  searchSection: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#111827',
-    marginLeft: 12,
-  },
-  filterButton: {
-    backgroundColor: '#FFF',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filtersContainer: {
-    backgroundColor: '#FFF',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  filterGroup: {
-    marginBottom: 16,
-  },
-  filterLabel: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  filterOptions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterChip: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  activeFilterChip: {
-    backgroundColor: '#10B981',
-  },
-  filterChipText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  activeFilterChipText: {
-    color: '#FFF',
-  },
-  content: {
-    padding: 20,
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: 'Poppins-SemiBold',
-    color: '#111827',
-    marginLeft: 8,
-  },
-  premiumBadge: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  premiumText: {
-    fontSize: 10,
-    fontFamily: 'Inter-Bold',
-    color: '#FFF',
-    letterSpacing: 0.5,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 64,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontFamily: 'Poppins-SemiBold',
-    color: '#111827',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-});

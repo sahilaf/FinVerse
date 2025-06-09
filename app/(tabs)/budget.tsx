@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Plus, DollarSign, TrendingUp, TrendingDown, ChartPie as PieChart, Target } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { BudgetItem } from '@/types';
 
 const mockBudgetItems: BudgetItem[] = [
@@ -20,6 +21,8 @@ const categories = {
 
 export default function Budget() {
   const { user } = useUserData();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>(mockBudgetItems);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newItem, setNewItem] = useState({
@@ -83,42 +86,44 @@ export default function Budget() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Budget Tracker</Text>
-          <Text style={styles.subtitle}>Take control of your finances</Text>
+        <View className="px-5 py-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 pt-16">
+          <Text className="text-3xl font-poppins-bold text-gray-900 dark:text-white mb-1">Budget Tracker</Text>
+          <Text className="text-base font-inter text-gray-600 dark:text-gray-400">
+            Take control of your finances
+          </Text>
         </View>
 
         {/* Budget Overview */}
-        <View style={styles.content}>
+        <View className="p-5">
           <LinearGradient
             colors={budgetHealthy ? ['#10B981', '#059669'] : ['#EF4444', '#DC2626']}
-            style={styles.overviewCard}
+            className="rounded-2xl p-5 mb-6"
           >
-            <View style={styles.overviewHeader}>
-              <Text style={styles.overviewTitle}>Monthly Overview</Text>
+            <View className="flex-row justify-between items-center mb-5">
+              <Text className="text-lg font-poppins-semibold text-white">Monthly Overview</Text>
               <DollarSign size={24} color="#FFF" />
             </View>
             
-            <View style={styles.overviewStats}>
-              <View style={styles.statItem}>
+            <View className="flex-row justify-between">
+              <View className="items-center flex-1">
                 <TrendingUp size={20} color="#FFF" />
-                <Text style={styles.statLabel}>Income</Text>
-                <Text style={styles.statValue}>{formatCurrency(totalIncome)}</Text>
+                <Text className="text-sm font-inter-medium text-white/80 mt-2 mb-1">Income</Text>
+                <Text className="text-lg font-poppins-semibold text-white">{formatCurrency(totalIncome)}</Text>
               </View>
               
-              <View style={styles.statItem}>
+              <View className="items-center flex-1">
                 <TrendingDown size={20} color="#FFF" />
-                <Text style={styles.statLabel}>Expenses</Text>
-                <Text style={styles.statValue}>{formatCurrency(totalExpenses)}</Text>
+                <Text className="text-sm font-inter-medium text-white/80 mt-2 mb-1">Expenses</Text>
+                <Text className="text-lg font-poppins-semibold text-white">{formatCurrency(totalExpenses)}</Text>
               </View>
               
-              <View style={styles.statItem}>
+              <View className="items-center flex-1">
                 <Target size={20} color="#FFF" />
-                <Text style={styles.statLabel}>Remaining</Text>
-                <Text style={[styles.statValue, !budgetHealthy && styles.negativeValue]}>
+                <Text className="text-sm font-inter-medium text-white/80 mt-2 mb-1">Remaining</Text>
+                <Text className={`text-lg font-poppins-semibold ${!budgetHealthy ? 'text-red-200' : 'text-white'}`}>
                   {formatCurrency(remainingBudget)}
                 </Text>
               </View>
@@ -126,60 +131,56 @@ export default function Budget() {
           </LinearGradient>
 
           {/* 50/30/20 Rule */}
-          <View style={styles.ruleCard}>
-            <View style={styles.ruleHeader}>
+          <View className="bg-white dark:bg-gray-800 rounded-2xl p-5 mb-6 shadow-sm">
+            <View className="flex-row items-center mb-4">
               <PieChart size={20} color="#3B82F6" />
-              <Text style={styles.ruleTitle}>50/30/20 Rule Analysis</Text>
+              <Text className="text-lg font-poppins-semibold text-gray-900 dark:text-white ml-2">
+                50/30/20 Rule Analysis
+              </Text>
             </View>
             
-            <View style={styles.ruleBreakdown}>
-              <View style={styles.ruleItem}>
-                <View style={styles.ruleItemHeader}>
-                  <Text style={styles.ruleCategory}>Needs (50%)</Text>
-                  <Text style={styles.ruleAmount}>
+            <View className="gap-4">
+              <View className="gap-2">
+                <View className="flex-row justify-between items-center">
+                  <Text className="text-sm font-inter-semibold text-gray-700 dark:text-gray-300">Needs (50%)</Text>
+                  <Text className="text-sm font-inter-medium text-gray-600 dark:text-gray-400">
                     {formatCurrency(needsSpent)} / {formatCurrency(needsTarget)}
                   </Text>
                 </View>
-                <View style={styles.progressBar}>
+                <View className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                   <View 
-                    style={[
-                      styles.progressFill,
-                      { width: `${Math.min(100, (needsSpent / needsTarget) * 100)}%`, backgroundColor: '#10B981' }
-                    ]} 
+                    className="h-full bg-primary-500 rounded-full"
+                    style={{ width: `${Math.min(100, (needsSpent / needsTarget) * 100)}%` }}
                   />
                 </View>
               </View>
               
-              <View style={styles.ruleItem}>
-                <View style={styles.ruleItemHeader}>
-                  <Text style={styles.ruleCategory}>Wants (30%)</Text>
-                  <Text style={styles.ruleAmount}>
+              <View className="gap-2">
+                <View className="flex-row justify-between items-center">
+                  <Text className="text-sm font-inter-semibold text-gray-700 dark:text-gray-300">Wants (30%)</Text>
+                  <Text className="text-sm font-inter-medium text-gray-600 dark:text-gray-400">
                     {formatCurrency(wantsSpent)} / {formatCurrency(wantsTarget)}
                   </Text>
                 </View>
-                <View style={styles.progressBar}>
+                <View className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                   <View 
-                    style={[
-                      styles.progressFill,
-                      { width: `${Math.min(100, (wantsSpent / wantsTarget) * 100)}%`, backgroundColor: '#F59E0B' }
-                    ]} 
+                    className="h-full bg-secondary-500 rounded-full"
+                    style={{ width: `${Math.min(100, (wantsSpent / wantsTarget) * 100)}%` }}
                   />
                 </View>
               </View>
               
-              <View style={styles.ruleItem}>
-                <View style={styles.ruleItemHeader}>
-                  <Text style={styles.ruleCategory}>Savings (20%)</Text>
-                  <Text style={styles.ruleAmount}>
+              <View className="gap-2">
+                <View className="flex-row justify-between items-center">
+                  <Text className="text-sm font-inter-semibold text-gray-700 dark:text-gray-300">Savings (20%)</Text>
+                  <Text className="text-sm font-inter-medium text-gray-600 dark:text-gray-400">
                     {formatCurrency(savingsAmount)} / {formatCurrency(savingsTarget)}
                   </Text>
                 </View>
-                <View style={styles.progressBar}>
+                <View className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                   <View 
-                    style={[
-                      styles.progressFill,
-                      { width: `${Math.min(100, (savingsAmount / savingsTarget) * 100)}%`, backgroundColor: '#3B82F6' }
-                    ]} 
+                    className="h-full bg-blue-500 rounded-full"
+                    style={{ width: `${Math.min(100, (savingsAmount / savingsTarget) * 100)}%` }}
                   />
                 </View>
               </View>
@@ -187,11 +188,11 @@ export default function Budget() {
           </View>
 
           {/* Budget Items */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Budget Items</Text>
+          <View className="mb-6">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-xl font-poppins-semibold text-gray-900 dark:text-white">Budget Items</Text>
               <TouchableOpacity 
-                style={styles.addButton}
+                className="bg-primary-500 w-10 h-10 rounded-full items-center justify-center"
                 onPress={() => setShowAddForm(true)}
               >
                 <Plus size={20} color="#FFF" />
@@ -199,20 +200,21 @@ export default function Budget() {
             </View>
 
             {budgetItems.map((item) => (
-              <View key={item.id} style={styles.budgetItem}>
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{item.name}</Text>
-                  <Text style={styles.itemCategory}>{item.category}</Text>
+              <View key={item.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 flex-row justify-between items-center shadow-sm">
+                <View className="flex-1">
+                  <Text className="text-base font-inter-semibold text-gray-900 dark:text-white mb-1">{item.name}</Text>
+                  <Text className="text-sm font-inter text-gray-600 dark:text-gray-400">{item.category}</Text>
                 </View>
-                <View style={styles.itemAmount}>
-                  <Text style={[
-                    styles.itemValue,
-                    item.type === 'income' ? styles.incomeValue : styles.expenseValue
-                  ]}>
+                <View className="items-end">
+                  <Text className={`text-base font-inter-bold ${
+                    item.type === 'income' ? 'text-primary-500' : 'text-red-500'
+                  }`}>
                     {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
                   </Text>
                   {item.isRecurring && (
-                    <Text style={styles.recurringBadge}>Monthly</Text>
+                    <Text className="text-xs font-inter-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded mt-1">
+                      Monthly
+                    </Text>
                   )}
                 </View>
               </View>
@@ -221,58 +223,70 @@ export default function Budget() {
 
           {/* Add Item Form */}
           {showAddForm && (
-            <View style={styles.addForm}>
-              <Text style={styles.formTitle}>Add Budget Item</Text>
+            <View className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg">
+              <Text className="text-lg font-poppins-semibold text-gray-900 dark:text-white mb-4">Add Budget Item</Text>
               
-              <View style={styles.formRow}>
+              <View className="flex-row gap-3 mb-4">
                 <TouchableOpacity
-                  style={[styles.typeButton, newItem.type === 'income' && styles.activeTypeButton]}
+                  className={`flex-1 py-3 rounded-lg items-center ${
+                    newItem.type === 'income' ? 'bg-primary-500' : 'bg-gray-100 dark:bg-gray-700'
+                  }`}
                   onPress={() => setNewItem({ ...newItem, type: 'income', category: '' })}
                 >
-                  <Text style={[styles.typeButtonText, newItem.type === 'income' && styles.activeTypeButtonText]}>
+                  <Text className={`text-sm font-inter-semibold ${
+                    newItem.type === 'income' ? 'text-white' : 'text-gray-600 dark:text-gray-400'
+                  }`}>
                     Income
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.typeButton, newItem.type === 'expense' && styles.activeTypeButton]}
+                  className={`flex-1 py-3 rounded-lg items-center ${
+                    newItem.type === 'expense' ? 'bg-primary-500' : 'bg-gray-100 dark:bg-gray-700'
+                  }`}
                   onPress={() => setNewItem({ ...newItem, type: 'expense', category: '' })}
                 >
-                  <Text style={[styles.typeButtonText, newItem.type === 'expense' && styles.activeTypeButtonText]}>
+                  <Text className={`text-sm font-inter-semibold ${
+                    newItem.type === 'expense' ? 'text-white' : 'text-gray-600 dark:text-gray-400'
+                  }`}>
                     Expense
                   </Text>
                 </TouchableOpacity>
               </View>
 
               <TextInput
-                style={styles.formInput}
+                className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-3 text-base font-inter text-gray-900 dark:text-white mb-4"
                 placeholder="Item name"
+                placeholderTextColor={isDark ? '#9CA3AF' : '#9CA3AF'}
                 value={newItem.name}
                 onChangeText={(text) => setNewItem({ ...newItem, name: text })}
               />
 
               <TextInput
-                style={styles.formInput}
+                className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-3 text-base font-inter text-gray-900 dark:text-white mb-4"
                 placeholder="Amount"
+                placeholderTextColor={isDark ? '#9CA3AF' : '#9CA3AF'}
                 value={newItem.amount}
                 onChangeText={(text) => setNewItem({ ...newItem, amount: text })}
                 keyboardType="numeric"
               />
 
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.categoryOptions}>
+                <View className="flex-row gap-2 mb-5">
                   {categories[newItem.type].map((category) => (
                     <TouchableOpacity
                       key={category}
-                      style={[
-                        styles.categoryChip,
-                        newItem.category === category && styles.activeCategoryChip
-                      ]}
+                      className={`px-3 py-2 rounded-2xl ${
+                        newItem.category === category 
+                          ? 'bg-primary-500' 
+                          : 'bg-gray-100 dark:bg-gray-700'
+                      }`}
                       onPress={() => setNewItem({ ...newItem, category })}
                     >
-                      <Text style={[
-                        styles.categoryChipText,
-                        newItem.category === category && styles.activeCategoryChipText
-                      ]}>
+                      <Text className={`text-sm font-inter-medium ${
+                        newItem.category === category 
+                          ? 'text-white' 
+                          : 'text-gray-600 dark:text-gray-400'
+                      }`}>
                         {category}
                       </Text>
                     </TouchableOpacity>
@@ -280,18 +294,18 @@ export default function Budget() {
                 </View>
               </ScrollView>
 
-              <View style={styles.formActions}>
+              <View className="flex-row gap-3">
                 <TouchableOpacity
-                  style={styles.cancelButton}
+                  className="flex-1 bg-gray-100 dark:bg-gray-700 py-3 rounded-lg items-center"
                   onPress={() => setShowAddForm(false)}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text className="text-base font-inter-semibold text-gray-600 dark:text-gray-400">Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.saveButton}
+                  className="flex-1 bg-primary-500 py-3 rounded-lg items-center"
                   onPress={handleAddItem}
                 >
-                  <Text style={styles.saveButtonText}>Add Item</Text>
+                  <Text className="text-base font-inter-semibold text-white">Add Item</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -301,298 +315,3 @@ export default function Budget() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    paddingTop: 60
-  },
-  title: {
-    fontSize: 32,
-    fontFamily: 'Poppins-Bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  content: {
-    padding: 20,
-  },
-  overviewCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-  },
-  overviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  overviewTitle: {
-    fontSize: 18,
-    fontFamily: 'Poppins-SemiBold',
-    color: '#FFF',
-  },
-  overviewStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statLabel: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 18,
-    fontFamily: 'Poppins-SemiBold',
-    color: '#FFF',
-  },
-  negativeValue: {
-    color: '#FEE2E2',
-  },
-  ruleCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  ruleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  ruleTitle: {
-    fontSize: 18,
-    fontFamily: 'Poppins-SemiBold',
-    color: '#111827',
-    marginLeft: 8,
-  },
-  ruleBreakdown: {
-    gap: 16,
-  },
-  ruleItem: {
-    gap: 8,
-  },
-  ruleItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  ruleCategory: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#374151',
-  },
-  ruleAmount: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: 'Poppins-SemiBold',
-    color: '#111827',
-  },
-  addButton: {
-    backgroundColor: '#10B981',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  budgetItem: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  itemInfo: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  itemCategory: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  itemAmount: {
-    alignItems: 'flex-end',
-  },
-  itemValue: {
-    fontSize: 16,
-    fontFamily: 'Inter-Bold',
-    marginBottom: 2,
-  },
-  incomeValue: {
-    color: '#10B981',
-  },
-  expenseValue: {
-    color: '#EF4444',
-  },
-  recurringBadge: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  addForm: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  formTitle: {
-    fontSize: 18,
-    fontFamily: 'Poppins-SemiBold',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  formRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  typeButton: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  activeTypeButton: {
-    backgroundColor: '#10B981',
-  },
-  typeButtonText: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#6B7280',
-  },
-  activeTypeButtonText: {
-    color: '#FFF',
-  },
-  formInput: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  categoryOptions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 20,
-  },
-  categoryChip: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  activeCategoryChip: {
-    backgroundColor: '#10B981',
-  },
-  categoryChipText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  activeCategoryChipText: {
-    color: '#FFF',
-  },
-  formActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#6B7280',
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFF',
-  },
-});

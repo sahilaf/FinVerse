@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Trophy, Flame } from 'lucide-react-native';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import ProgressBar from './ProgressBar';
 
 interface XPProgressCardProps {
@@ -12,95 +13,41 @@ interface XPProgressCardProps {
 }
 
 export default function XPProgressCard({ level, currentXP, xpToNextLevel, streak }: XPProgressCardProps) {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const progress = currentXP / (currentXP + xpToNextLevel);
   
   return (
     <LinearGradient
-      colors={['#10B981', '#059669']}
-      style={styles.container}
+      colors={isDark ? ['#059669', '#047857'] : ['#10B981', '#059669']}
+      className="rounded-2xl p-5 mb-6"
     >
-      <View style={styles.header}>
-        <View style={styles.levelSection}>
-          <View style={styles.levelBadge}>
+      <View className="flex-row justify-between items-center mb-4">
+        <View className="flex-1">
+          <View className="flex-row items-center mb-1">
             <Trophy size={16} color="#FFF" />
-            <Text style={styles.levelText}>Level {level}</Text>
+            <Text className="text-lg font-poppins-semibold text-white ml-2">Level {level}</Text>
           </View>
-          <Text style={styles.xpText}>{currentXP} XP</Text>
+          <Text className="text-sm font-inter-medium text-white/80">{currentXP} XP</Text>
         </View>
         
-        <View style={styles.streakSection}>
+        <View className="flex-row items-center bg-white/10 px-3 py-2 rounded-xl">
           <Flame size={20} color="#F59E0B" />
-          <Text style={styles.streakText}>{streak} day streak</Text>
+          <Text className="text-sm font-inter-semibold text-white ml-2">{streak} day streak</Text>
         </View>
       </View>
       
-      <View style={styles.progressSection}>
+      <View className="gap-2">
         <ProgressBar 
           progress={progress} 
           backgroundColor="rgba(255,255,255,0.2)"
           fillColor="#FFF"
           height={10}
         />
-        <Text style={styles.progressText}>
+        <Text className="text-xs font-inter-medium text-white/80 text-center">
           {xpToNextLevel} XP to Level {level + 1}
         </Text>
       </View>
     </LinearGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  levelSection: {
-    flex: 1,
-  },
-  levelBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  levelText: {
-    fontSize: 18,
-    fontFamily: 'Poppins-SemiBold',
-    color: '#FFF',
-    marginLeft: 8,
-  },
-  xpText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: 'rgba(255,255,255,0.8)',
-  },
-  streakSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  streakText: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFF',
-    marginLeft: 6,
-  },
-  progressSection: {
-    gap: 8,
-  },
-  progressText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
-  },
-});

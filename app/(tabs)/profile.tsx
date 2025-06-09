@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { User, Settings, Crown, BookOpen, Award, CircleHelp as HelpCircle, LogOut, ChevronRight, Globe, Bell, Shield, Star } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useUserData } from '@/hooks/useUserData';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 const menuItems = [
   {
@@ -64,11 +65,15 @@ const menuItems = [
 export default function Profile() {
   const { user } = useUserData();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   if (!user) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading profile...</Text>
+      <View className="flex-1 justify-center items-center bg-gray-50 dark:bg-gray-900">
+        <Text className="text-base font-inter-medium text-gray-600 dark:text-gray-400">
+          Loading profile...
+        </Text>
       </View>
     );
   }
@@ -97,25 +102,25 @@ export default function Profile() {
   const completionRate = Math.round((user.completedLessons.length / 6) * 100);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <LinearGradient
-          colors={['#065F46', '#047857']}
-          style={styles.header}
+          colors={isDark ? ['#047857', '#065F46'] : ['#065F46', '#047857']}
+          className="px-5 py-8 rounded-b-3xl pt-16"
         >
-          <View style={styles.profileSection}>
-            <View style={styles.avatarContainer}>
+          <View className="flex-row items-center mb-6">
+            <View className="w-16 h-16 rounded-full bg-white/20 items-center justify-center mr-4">
               <User size={32} color="#FFF" />
             </View>
             
-            <View style={styles.profileInfo}>
-              <Text style={styles.userName}>{user.name}</Text>
-              <Text style={styles.userEmail}>{user.email}</Text>
+            <View className="flex-1">
+              <Text className="text-2xl font-poppins-bold text-white mb-1">{user.name}</Text>
+              <Text className="text-sm font-inter text-white/80 mb-2">{user.email}</Text>
               
-              <View style={styles.levelBadge}>
+              <View className="flex-row items-center bg-white/20 px-3 py-2 rounded-xl self-start">
                 <Star size={16} color="#F59E0B" />
-                <Text style={styles.levelText}>Level {user.level}</Text>
+                <Text className="text-sm font-inter-semibold text-white ml-2">Level {user.level}</Text>
                 {user.subscriptionStatus === 'premium' && (
                   <Crown size={16} color="#F59E0B" style={{ marginLeft: 8 }} />
                 )}
@@ -124,72 +129,82 @@ export default function Profile() {
           </View>
 
           {/* Stats */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{user.xp}</Text>
-              <Text style={styles.statLabel}>Total XP</Text>
+          <View className="bg-white/10 rounded-2xl p-5 flex-row justify-between">
+            <View className="items-center flex-1">
+              <Text className="text-xl font-poppins-bold text-white">{user.xp}</Text>
+              <Text className="text-xs font-inter-medium text-white/80 mt-1">Total XP</Text>
             </View>
             
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{user.streak}</Text>
-              <Text style={styles.statLabel}>Day Streak</Text>
+            <View className="items-center flex-1">
+              <Text className="text-xl font-poppins-bold text-white">{user.streak}</Text>
+              <Text className="text-xs font-inter-medium text-white/80 mt-1">Day Streak</Text>
             </View>
             
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{completionRate}%</Text>
-              <Text style={styles.statLabel}>Complete</Text>
+            <View className="items-center flex-1">
+              <Text className="text-xl font-poppins-bold text-white">{completionRate}%</Text>
+              <Text className="text-xs font-inter-medium text-white/80 mt-1">Complete</Text>
             </View>
           </View>
         </LinearGradient>
 
         {/* Menu Items */}
-        <View style={styles.content}>
+        <View className="p-5">
           {menuItems.map((item) => (
             <TouchableOpacity
               key={item.id}
-              style={[
-                styles.menuItem,
-                item.isPremium && user.subscriptionStatus === 'free' && styles.premiumMenuItem
-              ]}
+              className={`bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 flex-row items-center justify-between shadow-sm ${
+                item.isPremium && user.subscriptionStatus === 'free' 
+                  ? 'border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20' 
+                  : ''
+              }`}
               onPress={() => handleMenuPress(item)}
               activeOpacity={0.7}
             >
-              <View style={styles.menuItemLeft}>
-                <View style={[styles.menuIcon, { backgroundColor: `${item.iconColor}15` }]}>
+              <View className="flex-row items-center flex-1">
+                <View 
+                  className="w-10 h-10 rounded-full items-center justify-center mr-4"
+                  style={{ backgroundColor: `${item.iconColor}15` }}
+                >
                   <item.icon size={20} color={item.iconColor} />
                 </View>
                 
-                <View style={styles.menuItemContent}>
-                  <Text style={styles.menuItemTitle}>{item.title}</Text>
-                  <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
+                <View className="flex-1">
+                  <Text className="text-base font-inter-semibold text-gray-900 dark:text-white mb-1">
+                    {item.title}
+                  </Text>
+                  <Text className="text-sm font-inter text-gray-600 dark:text-gray-400">
+                    {item.subtitle}
+                  </Text>
                 </View>
               </View>
               
-              <View style={styles.menuItemRight}>
+              <View className="flex-row items-center gap-2">
                 {item.isPremium && user.subscriptionStatus === 'free' && (
-                  <View style={styles.premiumBadge}>
+                  <View className="bg-amber-100 dark:bg-amber-800 rounded-lg p-1">
                     <Crown size={12} color="#F59E0B" />
                   </View>
                 )}
-                <ChevronRight size={20} color="#9CA3AF" />
+                <ChevronRight size={20} color={isDark ? '#9CA3AF' : '#9CA3AF'} />
               </View>
             </TouchableOpacity>
           ))}
 
           {/* Logout Button */}
           <TouchableOpacity 
-            style={styles.logoutButton}
+            className="flex-row items-center justify-center bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mt-5 mb-8"
             onPress={handleLogout}
             activeOpacity={0.7}
           >
             <LogOut size={20} color="#EF4444" />
-            <Text style={styles.logoutText}>Sign Out</Text>
+            <Text className="text-base font-inter-semibold text-red-500 ml-2">Sign Out</Text>
           </TouchableOpacity>
 
           {/* App Version */}
-          <View style={styles.footer}>
-            <Text style={styles.versionText}>FinVerse v1.0.0</Text>
-            <Text style={styles.copyrightText}>
+          <View className="items-center py-5">
+            <Text className="text-sm font-inter-medium text-gray-500 dark:text-gray-400 mb-1">
+              FinVerse v1.0.0
+            </Text>
+            <Text className="text-xs font-inter text-gray-500 dark:text-gray-400">
               Made with ❤️ for financial education
             </Text>
           </View>
@@ -198,187 +213,3 @@ export default function Profile() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-    
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-  },
-  loadingText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 32,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    paddingTop: 60
-  },
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  avatarContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 24,
-    fontFamily: 'Poppins-Bold',
-    color: '#FFF',
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 8,
-  },
-  levelBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  levelText: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFF',
-    marginLeft: 6,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16,
-    padding: 20,
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: 20,
-    fontFamily: 'Poppins-Bold',
-    color: '#FFF',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: 'rgba(255,255,255,0.8)',
-  },
-  content: {
-    padding: 20,
-  },
-  menuItem: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  premiumMenuItem: {
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-    backgroundColor: '#FFFBEB',
-  },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  menuIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  menuItemContent: {
-    flex: 1,
-  },
-  menuItemTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  menuItemSubtitle: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  menuItemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  premiumBadge: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    padding: 4,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 20,
-    marginBottom: 32,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#EF4444',
-    marginLeft: 8,
-  },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  versionText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#9CA3AF',
-    marginBottom: 4,
-  },
-  copyrightText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#9CA3AF',
-  },
-});
