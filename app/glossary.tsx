@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { Search, BookOpen, ArrowLeft } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { glossaryTerms } from '@/data/glossary';
 
 const categories = ['All', 'Credit', 'Saving', 'Investing', 'Retirement'];
 
 export default function Glossary() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -23,58 +20,54 @@ export default function Glossary() {
   });
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
+    <ScrollView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View className="flex-row items-center px-5 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 pt-16">
+        <View style={styles.header}>
           <TouchableOpacity 
-            className="mr-4"
+            style={styles.backButton}
             onPress={() => router.back()}
           >
-            <ArrowLeft size={24} color={isDark ? '#FFF' : '#111827'} />
+            <ArrowLeft size={24} color="#111827" />
           </TouchableOpacity>
           
-          <View className="flex-1">
-            <Text className="text-3xl font-poppins-bold text-gray-900 dark:text-white mb-1">Glossary</Text>
-            <Text className="text-base font-inter text-gray-600 dark:text-gray-400">
-              Financial terms made simple
-            </Text>
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>Glossary</Text>
+            <Text style={styles.subtitle}>Financial terms made simple</Text>
           </View>
         </View>
 
         {/* Search */}
-        <View className="px-5 py-4">
-          <View className="flex-row items-center bg-white dark:bg-gray-800 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700">
-            <Search size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
+        <View style={styles.searchSection}>
+          <View style={styles.searchContainer}>
+            <Search size={20} color="#6B7280" />
             <TextInput
-              className="flex-1 text-base font-inter text-gray-900 dark:text-white ml-3"
+              style={styles.searchInput}
               placeholder="Search terms..."
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholderTextColor={isDark ? '#9CA3AF' : '#9CA3AF'}
+              placeholderTextColor="#9CA3AF"
             />
           </View>
         </View>
 
         {/* Categories */}
-        <View className="px-5 pb-4">
+        <View style={styles.categoriesSection}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row gap-2">
+            <View style={styles.categories}>
               {categories.map((category) => (
                 <TouchableOpacity
                   key={category}
-                  className={`px-4 py-2 rounded-full ${
-                    selectedCategory === category 
-                      ? 'bg-primary-500' 
-                      : 'bg-gray-100 dark:bg-gray-700'
-                  }`}
+                  style={[
+                    styles.categoryChip,
+                    selectedCategory === category && styles.activeCategoryChip
+                  ]}
                   onPress={() => setSelectedCategory(category)}
                 >
-                  <Text className={`text-sm font-inter-medium ${
-                    selectedCategory === category 
-                      ? 'text-white' 
-                      : 'text-gray-600 dark:text-gray-400'
-                  }`}>
+                  <Text style={[
+                    styles.categoryChipText,
+                    selectedCategory === category && styles.activeCategoryChipText
+                  ]}>
                     {category}
                   </Text>
                 </TouchableOpacity>
@@ -84,31 +77,23 @@ export default function Glossary() {
         </View>
 
         {/* Terms */}
-        <View className="p-5">
+        <View style={styles.content}>
           {filteredTerms.length > 0 ? (
             filteredTerms.map((term) => (
-              <View key={term.id} className="bg-white dark:bg-gray-800 rounded-2xl p-5 mb-4 shadow-sm">
-                <View className="flex-row justify-between items-start mb-3">
-                  <Text className="text-xl font-poppins-semibold text-gray-900 dark:text-white flex-1 mr-3">
-                    {term.term}
-                  </Text>
-                  <View className="bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg">
-                    <Text className="text-xs font-inter-medium text-blue-600 dark:text-blue-400">
-                      {term.category}
-                    </Text>
+              <View key={term.id} style={styles.termCard}>
+                <View style={styles.termHeader}>
+                  <Text style={styles.termTitle}>{term.term}</Text>
+                  <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryBadgeText}>{term.category}</Text>
                   </View>
                 </View>
                 
-                <Text className="text-base font-inter text-gray-700 dark:text-gray-300 leading-6 mb-4">
-                  {term.definition}
-                </Text>
+                <Text style={styles.termDefinition}>{term.definition}</Text>
                 
                 {term.relatedTerms.length > 0 && (
-                  <View className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border-l-4 border-primary-500">
-                    <Text className="text-sm font-inter-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Related Terms:
-                    </Text>
-                    <Text className="text-sm font-inter text-gray-600 dark:text-gray-400">
+                  <View style={styles.relatedTerms}>
+                    <Text style={styles.relatedTitle}>Related Terms:</Text>
+                    <Text style={styles.relatedList}>
                       {term.relatedTerms.join(', ')}
                     </Text>
                   </View>
@@ -116,12 +101,10 @@ export default function Glossary() {
               </View>
             ))
           ) : (
-            <View className="items-center justify-center py-16">
-              <BookOpen size={48} color={isDark ? '#9CA3AF' : '#9CA3AF'} />
-              <Text className="text-lg font-poppins-semibold text-gray-900 dark:text-white mt-4 mb-2">
-                No terms found
-              </Text>
-              <Text className="text-sm font-inter text-gray-600 dark:text-gray-400 text-center">
+            <View style={styles.emptyState}>
+              <BookOpen size={48} color="#9CA3AF" />
+              <Text style={styles.emptyTitle}>No terms found</Text>
+              <Text style={styles.emptySubtitle}>
                 Try adjusting your search or category filter
               </Text>
             </View>
@@ -131,3 +114,163 @@ export default function Glossary() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  backButton: {
+    marginRight: 16,
+  },
+  headerContent: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 32,
+    fontFamily: 'Poppins-Bold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+  },
+  searchSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#111827',
+    marginLeft: 12,
+  },
+  categoriesSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  categories: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  categoryChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  activeCategoryChip: {
+    backgroundColor: '#10B981',
+  },
+  categoryChipText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  activeCategoryChipText: {
+    color: '#FFF',
+  },
+  content: {
+    padding: 20,
+  },
+  termCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  termHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  termTitle: {
+    fontSize: 20,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#111827',
+    flex: 1,
+    marginRight: 12,
+  },
+  categoryBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  categoryBadgeText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#3B82F6',
+  },
+  termDefinition: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#374151',
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  relatedTerms: {
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#10B981',
+  },
+  relatedTitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  relatedList: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 64,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+});

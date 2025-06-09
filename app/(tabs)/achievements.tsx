@@ -1,9 +1,8 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Trophy, Star, Target, Award } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import AchievementBadge from '@/components/AchievementBadge';
 import ProgressBar from '@/components/ProgressBar';
 
@@ -72,15 +71,11 @@ const allAchievements = [
 
 export default function Achievements() {
   const { user } = useUserData();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
 
   if (!user) {
     return (
-      <View className="flex-1 justify-center items-center bg-gray-50 dark:bg-gray-900">
-        <Text className="text-base font-inter-medium text-gray-600 dark:text-gray-400">
-          Loading achievements...
-        </Text>
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading achievements...</Text>
       </View>
     );
   }
@@ -91,104 +86,98 @@ export default function Achievements() {
   const achievementProgress = (unlockedAchievements.length / allAchievements.length) * 100;
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
+    <ScrollView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View className="px-5 py-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 pt-16">
-          <Text className="text-3xl font-poppins-bold text-gray-900 dark:text-white mb-1">Achievements</Text>
-          <Text className="text-base font-inter text-gray-600 dark:text-gray-400">
-            Track your learning milestones
-          </Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Achievements</Text>
+          <Text style={styles.subtitle}>Track your learning milestones</Text>
         </View>
 
         {/* Progress Overview */}
-        <View className="p-5">
+        <View style={styles.content}>
           <LinearGradient
             colors={['#F59E0B', '#D97706']}
-            className="rounded-2xl p-5 mb-6"
+            style={styles.progressCard}
           >
-            <View className="flex-row items-center mb-5">
+            <View style={styles.progressHeader}>
               <Trophy size={24} color="#FFF" />
-              <Text className="text-lg font-poppins-semibold text-white ml-2">Achievement Progress</Text>
+              <Text style={styles.progressTitle}>Achievement Progress</Text>
             </View>
             
-            <View className="flex-row justify-between mb-5">
-              <View className="items-center">
-                <Text className="text-2xl font-poppins-bold text-white">{unlockedAchievements.length}</Text>
-                <Text className="text-sm font-inter-medium text-white/80">Unlocked</Text>
+            <View style={styles.progressStats}>
+              <View style={styles.progressStat}>
+                <Text style={styles.progressNumber}>{unlockedAchievements.length}</Text>
+                <Text style={styles.progressLabel}>Unlocked</Text>
               </View>
               
-              <View className="items-center">
-                <Text className="text-2xl font-poppins-bold text-white">{allAchievements.length}</Text>
-                <Text className="text-sm font-inter-medium text-white/80">Total</Text>
+              <View style={styles.progressStat}>
+                <Text style={styles.progressNumber}>{allAchievements.length}</Text>
+                <Text style={styles.progressLabel}>Total</Text>
               </View>
               
-              <View className="items-center">
-                <Text className="text-2xl font-poppins-bold text-white">{totalXPEarned}</Text>
-                <Text className="text-sm font-inter-medium text-white/80">XP Earned</Text>
+              <View style={styles.progressStat}>
+                <Text style={styles.progressNumber}>{totalXPEarned}</Text>
+                <Text style={styles.progressLabel}>XP Earned</Text>
               </View>
             </View>
 
-            <View className="gap-2">
+            <View style={styles.progressBarContainer}>
               <ProgressBar 
                 progress={achievementProgress / 100}
                 backgroundColor="rgba(255,255,255,0.2)"
                 fillColor="#FFF"
                 height={12}
               />
-              <Text className="text-sm font-inter-semibold text-white text-center">
+              <Text style={styles.progressPercentage}>
                 {Math.round(achievementProgress)}% Complete
               </Text>
             </View>
           </LinearGradient>
 
           {/* Current Level Stats */}
-          <View className="bg-white dark:bg-gray-800 rounded-2xl p-5 mb-6 shadow-sm">
-            <View className="flex-row items-center mb-4">
+          <View style={styles.levelCard}>
+            <View style={styles.levelHeader}>
               <Star size={20} color="#10B981" />
-              <Text className="text-lg font-poppins-semibold text-gray-900 dark:text-white ml-2">Current Level</Text>
+              <Text style={styles.levelTitle}>Current Level</Text>
             </View>
             
-            <View className="flex-row justify-between">
-              <View className="items-center">
-                <Text className="text-2xl font-poppins-bold text-primary-500">{user.level}</Text>
-                <Text className="text-sm font-inter-medium text-gray-600 dark:text-gray-400 mt-1">Level</Text>
+            <View style={styles.levelStats}>
+              <View style={styles.levelStat}>
+                <Text style={styles.levelNumber}>{user.level}</Text>
+                <Text style={styles.levelLabel}>Level</Text>
               </View>
               
-              <View className="items-center">
-                <Text className="text-2xl font-poppins-bold text-primary-500">{user.xp}</Text>
-                <Text className="text-sm font-inter-medium text-gray-600 dark:text-gray-400 mt-1">Total XP</Text>
+              <View style={styles.levelStat}>
+                <Text style={styles.levelNumber}>{user.xp}</Text>
+                <Text style={styles.levelLabel}>Total XP</Text>
               </View>
               
-              <View className="items-center">
-                <Text className="text-2xl font-poppins-bold text-primary-500">{user.streak}</Text>
-                <Text className="text-sm font-inter-medium text-gray-600 dark:text-gray-400 mt-1">Day Streak</Text>
+              <View style={styles.levelStat}>
+                <Text style={styles.levelNumber}>{user.streak}</Text>
+                <Text style={styles.levelLabel}>Day Streak</Text>
               </View>
             </View>
           </View>
 
           {/* Unlocked Achievements */}
           {unlockedAchievements.length > 0 && (
-            <View className="mb-8">
-              <View className="flex-row items-center mb-4">
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
                 <Award size={20} color="#10B981" />
-                <Text className="text-xl font-poppins-semibold text-gray-900 dark:text-white ml-2">
-                  Unlocked Achievements
-                </Text>
+                <Text style={styles.sectionTitle}>Unlocked Achievements</Text>
               </View>
               
-              <View className="flex-row flex-wrap gap-4">
+              <View style={styles.achievementGrid}>
                 {unlockedAchievements.map((achievement) => (
-                  <View key={achievement.id} className="items-center w-24">
+                  <View key={achievement.id} style={styles.achievementItem}>
                     <AchievementBadge
                       achievement={achievement}
                       size="large"
                     />
-                    <View className="items-center mt-2">
-                      <Text className="text-xs font-inter-semibold text-white bg-primary-500 px-2 py-1 rounded-lg mb-1">
-                        +{achievement.xpReward} XP
-                      </Text>
-                      <Text className="text-xs font-inter text-gray-600 dark:text-gray-400 text-center">
+                    <View style={styles.achievementDetails}>
+                      <Text style={styles.xpBadge}>+{achievement.xpReward} XP</Text>
+                      <Text style={styles.unlockedDate}>
                         Unlocked {achievement.unlockedAt.toLocaleDateString()}
                       </Text>
                     </View>
@@ -199,48 +188,40 @@ export default function Achievements() {
           )}
 
           {/* Locked Achievements */}
-          <View className="mb-8">
-            <View className="flex-row items-center mb-4">
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
               <Target size={20} color="#6B7280" />
-              <Text className="text-xl font-poppins-semibold text-gray-900 dark:text-white ml-2">
-                Upcoming Achievements
-              </Text>
+              <Text style={styles.sectionTitle}>Upcoming Achievements</Text>
             </View>
             
-            <View className="gap-4">
+            <View style={styles.lockedAchievements}>
               {lockedAchievements.map((achievement) => (
-                <View key={achievement.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 flex-row items-center shadow-sm">
-                  <View className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 items-center justify-center mr-4">
+                <View key={achievement.id} style={styles.lockedAchievement}>
+                  <View style={styles.lockedBadge}>
                     <Trophy size={20} color="#9CA3AF" />
                   </View>
                   
-                  <View className="flex-1">
-                    <Text className="text-base font-inter-semibold text-gray-900 dark:text-white mb-1">
-                      {achievement.title}
-                    </Text>
-                    <Text className="text-sm font-inter text-gray-600 dark:text-gray-400 mb-2">
-                      {achievement.description}
-                    </Text>
+                  <View style={styles.lockedInfo}>
+                    <Text style={styles.lockedTitle}>{achievement.title}</Text>
+                    <Text style={styles.lockedDescription}>{achievement.description}</Text>
                     
                     {achievement.progress !== undefined && achievement.target && (
-                      <View className="gap-1">
+                      <View style={styles.progressContainer}>
                         <ProgressBar 
                           progress={achievement.progress / achievement.target}
-                          backgroundColor={isDark ? '#374151' : '#E5E7EB'}
+                          backgroundColor="#E5E7EB"
                           fillColor="#10B981"
                           height={6}
                         />
-                        <Text className="text-xs font-inter-medium text-gray-600 dark:text-gray-400">
+                        <Text style={styles.progressText}>
                           {achievement.progress} / {achievement.target}
                         </Text>
                       </View>
                     )}
                   </View>
                   
-                  <View className="items-center">
-                    <Text className="text-xs font-inter-semibold text-secondary-600 bg-secondary-50 dark:bg-secondary-900/20 px-2 py-1 rounded-lg">
-                      +{achievement.xpReward} XP
-                    </Text>
+                  <View style={styles.lockedReward}>
+                    <Text style={styles.lockedXP}>+{achievement.xpReward} XP</Text>
                   </View>
                 </View>
               ))}
@@ -251,3 +232,230 @@ export default function Achievements() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    paddingTop: 60,
+  },
+  title: {
+    fontSize: 32,
+    fontFamily: 'Poppins-Bold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+  },
+  content: {
+    padding: 20,
+  },
+  progressCard: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  progressTitle: {
+    fontSize: 18,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#FFF',
+    marginLeft: 8,
+  },
+  progressStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  progressStat: {
+    alignItems: 'center',
+  },
+  progressNumber: {
+    fontSize: 24,
+    fontFamily: 'Poppins-Bold',
+    color: '#FFF',
+  },
+  progressLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 4,
+  },
+  progressBarContainer: {
+    gap: 8,
+  },
+  progressPercentage: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFF',
+    textAlign: 'center',
+  },
+  levelCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  levelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  levelTitle: {
+    fontSize: 18,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#111827',
+    marginLeft: 8,
+  },
+  levelStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  levelStat: {
+    alignItems: 'center',
+  },
+  levelNumber: {
+    fontSize: 24,
+    fontFamily: 'Poppins-Bold',
+    color: '#10B981',
+  },
+  levelLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  section: {
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#111827',
+    marginLeft: 8,
+  },
+  achievementGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  achievementItem: {
+    alignItems: 'center',
+    width: '48%',
+  },
+  achievementDetails: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  xpBadge: {
+    fontSize: 12,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFF',
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  unlockedDate: {
+    fontSize: 10,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  lockedAchievements: {
+    gap: 16,
+  },
+  lockedAchievement: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  lockedBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  lockedInfo: {
+    flex: 1,
+  },
+  lockedTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  lockedDescription: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  progressContainer: {
+    gap: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  lockedReward: {
+    alignItems: 'center',
+  },
+  lockedXP: {
+    fontSize: 12,
+    fontFamily: 'Inter-SemiBold',
+    color: '#F59E0B',
+    backgroundColor: '#FFFBEB',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+});

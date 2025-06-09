@@ -1,10 +1,9 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { BookOpen, Calculator, Sparkles } from 'lucide-react-native';
+import { BookOpen,  Calculator, Sparkles } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import XPProgressCard from '@/components/XPProgressCard';
 import LessonCard from '@/components/LessonCard';
 import AchievementBadge from '@/components/AchievementBadge';
@@ -13,8 +12,6 @@ import { lessons } from '@/data/lessons';
 export default function Dashboard() {
   const { user, loading } = useUserData();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
   const [refreshing, setRefreshing] = React.useState(false);
 
   const onRefresh = React.useCallback(() => {
@@ -24,10 +21,8 @@ export default function Dashboard() {
 
   if (loading || !user) {
     return (
-      <View className="flex-1 justify-center items-center bg-gray-50 dark:bg-gray-900">
-        <Text className="text-base font-inter-medium text-gray-600 dark:text-gray-400">
-          Loading your financial journey...
-        </Text>
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading your financial journey...</Text>
       </View>
     );
   }
@@ -39,7 +34,7 @@ export default function Dashboard() {
   const recentAchievements = user.achievements.slice(-3);
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
+    <ScrollView style={styles.container}>
       <ScrollView 
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -47,18 +42,13 @@ export default function Dashboard() {
         }
       >
         {/* Header */}
-        <LinearGradient 
-          colors={isDark ? ['#047857', '#065F46'] : ['#065F46', '#047857']} 
-          className="px-5 py-8 rounded-b-3xl pt-16"
-        >
-          <Text className="text-base font-inter text-white/80">Good morning,</Text>
-          <Text className="text-3xl font-poppins-bold text-white mb-1">{user.name} 👋</Text>
-          <Text className="text-sm font-inter text-white/70">
-            Ready to level up your financial knowledge?
-          </Text>
+        <LinearGradient colors={['#065F46', '#047857']} style={styles.header}>
+          <Text style={styles.greeting}>Good morning,</Text>
+          <Text style={styles.userName}>{user.name} 👋</Text>
+          <Text style={styles.subtitle}>Ready to level up your financial knowledge?</Text>
         </LinearGradient>
 
-        <View className="p-5">
+        <View style={styles.content}>
           {/* XP Progress */}
           <XPProgressCard
             level={user.level}
@@ -68,41 +58,33 @@ export default function Dashboard() {
           />
 
           {/* Quick Actions */}
-          <View className="mb-8">
-            <Text className="text-xl font-poppins-semibold text-gray-900 dark:text-white mb-4">
-              Quick Actions
-            </Text>
-            <View className="flex-row gap-4">
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <View style={styles.quickActions}>
               <TouchableOpacity 
-                className="flex-1 bg-white dark:bg-gray-800 p-5 rounded-2xl items-center shadow-sm"
+                style={styles.actionCard}
                 onPress={() => router.push('/learn')}
               >
                 <BookOpen size={24} color="#10B981" />
-                <Text className="text-sm font-inter-semibold text-gray-700 dark:text-gray-300 mt-2 text-center">
-                  Continue Learning
-                </Text>
+                <Text style={styles.actionText}>Continue Learning</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                className="flex-1 bg-white dark:bg-gray-800 p-5 rounded-2xl items-center shadow-sm"
+                style={styles.actionCard}
                 onPress={() => router.push('/budget')}
               >
                 <Calculator size={24} color="#3B82F6" />
-                <Text className="text-sm font-inter-semibold text-gray-700 dark:text-gray-300 mt-2 text-center">
-                  Track Budget
-                </Text>
+                <Text style={styles.actionText}>Track Budget</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Suggested Lessons */}
-          <View className="mb-8">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-xl font-poppins-semibold text-gray-900 dark:text-white">
-                Recommended for You
-              </Text>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recommended for You</Text>
               <TouchableOpacity onPress={() => router.push('/learn')}>
-                <Text className="text-sm font-inter-semibold text-primary-500">See All</Text>
+                <Text style={styles.seeAllText}>See All</Text>
               </TouchableOpacity>
             </View>
             
@@ -124,18 +106,16 @@ export default function Dashboard() {
 
           {/* Recent Achievements */}
           {recentAchievements.length > 0 && (
-            <View className="mb-8">
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-xl font-poppins-semibold text-gray-900 dark:text-white">
-                  Recent Achievements
-                </Text>
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recent Achievements</Text>
                 <TouchableOpacity onPress={() => router.push('/achievements')}>
-                  <Text className="text-sm font-inter-semibold text-primary-500">See All</Text>
+                  <Text style={styles.seeAllText}>See All</Text>
                 </TouchableOpacity>
               </View>
               
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View className="flex-row gap-4 pr-5">
+                <View style={styles.achievementsRow}>
                   {recentAchievements.map((achievement) => (
                     <AchievementBadge
                       key={achievement.id}
@@ -149,14 +129,12 @@ export default function Dashboard() {
           )}
 
           {/* Financial Tip of the Day */}
-          <View className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-5 mb-5">
-            <View className="flex-row items-center mb-3">
+          <View style={styles.tipCard}>
+            <View style={styles.tipHeader}>
               <Sparkles size={20} color="#F59E0B" />
-              <Text className="text-base font-inter-semibold text-amber-800 dark:text-amber-200 ml-2">
-                Financial Tip of the Day
-              </Text>
+              <Text style={styles.tipTitle}>Financial Tip of the Day</Text>
             </View>
-            <Text className="text-sm font-inter text-amber-900 dark:text-amber-100 leading-5">
+            <Text style={styles.tipText}>
               Start your emergency fund with just $25. Small consistent contributions 
               build powerful financial security over time.
             </Text>
@@ -166,3 +144,120 @@ export default function Dashboard() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 32,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    paddingTop: 60,
+  },
+  greeting: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: 'rgba(255,255,255,0.8)',
+  },
+  userName: {
+    fontSize: 28,
+    fontFamily: 'Poppins-Bold',
+    color: '#FFF',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  content: {
+    padding: 20,
+  },
+  section: {
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#111827',
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#10B981',
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  actionCard: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  actionText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#374151',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  achievementsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    paddingRight: 20,
+  },
+  tipCard: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FED7AA',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+  },
+  tipHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tipTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#92400E',
+    marginLeft: 8,
+  },
+  tipText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#78350F',
+    lineHeight: 20,
+  },
+});
