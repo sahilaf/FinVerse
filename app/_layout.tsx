@@ -16,11 +16,15 @@ import {
   Poppins_700Bold
 } from '@expo-google-fonts/poppins';
 import * as SplashScreen from 'expo-splash-screen';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import '../global.css';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useFrameworkReady();
+  const colorScheme = useColorScheme();
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -44,16 +48,18 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <AuthProvider>
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="lesson/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="quiz/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="premium" options={{ headerShown: false }} />
+        <Stack.Screen name="glossary" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
-      <StatusBar style="light" backgroundColor="#065F46" />
-    </>
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+    </AuthProvider>
   );
 }
