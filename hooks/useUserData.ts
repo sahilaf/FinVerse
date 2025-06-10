@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { User } from '@/types';
-import { useAuth } from '@/contexts/AuthContext';
 
-// Mock user data - in production, this would come from your Supabase database
-const createMockUser = (authUser: any): User => ({
-  id: authUser.id,
-  name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
-  email: authUser.email || '',
+// Mock user data - in production, this would come from your backend/database
+const mockUser: User = {
+  id: '1',
+  name: 'Alex Johnson',
+  email: 'alex@example.com',
   level: 3,
   xp: 1250,
   streak: 7,
@@ -32,25 +31,19 @@ const createMockUser = (authUser: any): User => ({
     }
   ],
   subscriptionStatus: 'free'
-});
+};
 
 export function useUserData() {
-  const { user: authUser, loading: authLoading } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading) {
-      if (authUser) {
-        // In production, fetch user data from Supabase database here
-        const userData = createMockUser(authUser);
-        setUser(userData);
-      } else {
-        setUser(null);
-      }
+    // Simulate loading user data
+    setTimeout(() => {
+      setUser(mockUser);
       setLoading(false);
-    }
-  }, [authUser, authLoading]);
+    }, 1000);
+  }, []);
 
   const updateUser = (updates: Partial<User>) => {
     if (user) {
@@ -58,5 +51,5 @@ export function useUserData() {
     }
   };
 
-  return { user, loading: loading || authLoading, updateUser };
+  return { user, loading, updateUser };
 }
