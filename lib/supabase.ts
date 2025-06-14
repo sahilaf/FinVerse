@@ -57,8 +57,6 @@ export type Database = {
           achievements: any[];
           subscription_status: 'free' | 'premium';
           onboarding_completed: boolean;
-          goal?: string;
-          knowledge_level?: string;
           created_at: string;
           updated_at: string;
         };
@@ -76,8 +74,6 @@ export type Database = {
           achievements?: any[];
           subscription_status?: 'free' | 'premium';
           onboarding_completed?: boolean;
-          goal?: string;
-          knowledge_level?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -95,8 +91,6 @@ export type Database = {
           achievements?: any[];
           subscription_status?: 'free' | 'premium';
           onboarding_completed?: boolean;
-          goal?: string;
-          knowledge_level?: string;
           created_at?: string;
           updated_at?: string;
         };
