@@ -229,7 +229,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(null);
       
       // Immediately redirect to index page after sign out
-      router.replace('/');
+      router.replace('/(auth)');
     } catch (error: any) {
       console.error('Error signing out:', error.message);
     } finally {
