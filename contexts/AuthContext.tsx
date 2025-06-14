@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
+import { useRouter } from 'expo-router';
 import { supabase, Database } from '@/lib/supabase'; // Assuming '@/lib/supabase' is correctly configured
 
 // Define the Profile type from your Supabase database schema
@@ -47,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true); // Manages overall loading state for auth operations
+  const router = useRouter();
 
   // Effect to initialize auth state and listen for changes
   useEffect(() => {
@@ -88,6 +90,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // If no user, clear profile and stop loading
           setProfile(null);
           setLoading(false);
+          
+          // Redirect to index page when user signs out
+          if (event === 'SIGNED_OUT') {
+            router.replace('/');
+          }
         }
       }
     );
@@ -96,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       listener.subscription.unsubscribe();
     };
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [router]); // Add router to dependency array
 
   // Function to fetch or create a user profile
   const fetchProfile = async (userId: string, email: string) => {
