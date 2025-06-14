@@ -10,10 +10,13 @@ export default function Index() {
   useEffect(() => {
     if (!loading) {
       if (!session) {
+        // No session, redirect to auth
         router.replace('/(auth)');
       } else if (profile && !profile.onboarding_completed) {
+        // User exists but hasn't completed onboarding
         router.replace('/onboarding');
       } else if (profile && profile.onboarding_completed) {
+        // User exists and has completed onboarding, go to dashboard
         router.replace('/(tabs)');
       }
     }

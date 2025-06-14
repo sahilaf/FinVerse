@@ -100,6 +100,7 @@ export default function Onboarding() {
     if (error) {
       Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
     } else {
+      // Navigate to the main app (tabs)
       router.replace('/(tabs)');
     }
   };
