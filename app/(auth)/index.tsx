@@ -9,21 +9,6 @@ const features = [
     icon: TrendingUp,
     title: 'Smart Learning',
     description: 'AI-powered lessons tailored to your pace'
-  },
-  {
-    icon: Shield,
-    title: 'Secure & Private',
-    description: 'Your financial data is always protected'
-  },
-  {
-    icon: Users,
-    title: 'Expert Content',
-    description: 'Created by certified financial advisors'
-  },
-  {
-    icon: Sparkles,
-    title: 'Gamified Experience',
-    description: 'Earn XP, badges, and track your progress'
   }
 ];
 
