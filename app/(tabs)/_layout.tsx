@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, BookOpen, Calculator, Trophy, User } from 'lucide-react-native';
+import { Chrome as Home, BookOpen, Calculator, Trophy, User, Bot } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -38,6 +38,15 @@ export default function TabLayout() {
           title: 'Learn',
           tabBarIcon: ({ size, color }) => (
             <BookOpen size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="tutor"
+        options={{
+          title: 'AI Tutor',
+          tabBarIcon: ({ size, color }) => (
+            <Bot size={size} color={color} />
           ),
         }}
       />
