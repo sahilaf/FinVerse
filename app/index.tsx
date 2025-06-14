@@ -16,38 +16,21 @@ export default function Index() {
   const router = useRouter();
 
   useEffect(() => {
-    // Only proceed with navigation logic when not loading
     if (!loading) {
-      console.log('Index: Auth state loaded', { 
-        hasSession: !!session, 
-        hasProfile: !!profile, 
-        onboardingCompleted: profile?.onboarding_completed 
-      });
-
       if (!session) {
-        console.log('Index: No session, redirecting to auth');
         router.replace('/(auth)');
-        return;
-      }
-
-      if (profile === null) {
-        console.log('Index: Profile is null, staying on loading screen');
-        return;
-      }
-
-      if (!profile.onboarding_completed) {
-        console.log('Index: Onboarding not completed, redirecting to onboarding');
+      } else if (profile === null) {
+        // Handle profile creation delay
+        console.log('Profile still loading...');
+      } else if (!profile.onboarding_completed) {
         router.replace('/onboarding');
-        return;
+      } else {
+        router.replace('/(tabs)');
       }
-
-      console.log('Index: All checks passed, redirecting to tabs');
-      router.replace('/(tabs)');
     }
   }, [session, profile, loading, router]);
 
-  // Show loading screen while auth state is being determined
-  if (loading || (session && profile === null)) {
+  if (loading || profile === null) {
     return (
       <View style={styles.container}>
         <LinearGradient

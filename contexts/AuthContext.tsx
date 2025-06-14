@@ -48,7 +48,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true); // Manages overall loading state for auth operations
-  const [initializing, setInitializing] = useState(true); // Track initial auth state load
   const router = useRouter();
 
   // Effect to initialize auth state and listen for changes
@@ -71,8 +70,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(null); // Clear profile if no user
         setLoading(false); // Stop loading if no user or profile needed
       }
-      
-      setInitializing(false); // Mark initialization as complete
     };
 
     initAuth();
@@ -81,12 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
-        
-        // Don't set loading during initialization to prevent race conditions
-        if (!initializing) {
-          setLoading(true);
-        }
-        
+        setLoading(true); // Start loading on auth state change
         setSession(session);
         const currentUser = session?.user ?? null;
         setUser(currentUser);
@@ -98,12 +90,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // If no user, clear profile and stop loading
           setProfile(null);
           setLoading(false);
-          
-          // Immediate redirect on sign out - don't wait for index.tsx logic
-          if (event === 'SIGNED_OUT') {
-            console.log('User signed out, redirecting to auth...');
-            router.replace('/(auth)');
-          }
         }
       }
     );
@@ -112,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       listener.subscription.unsubscribe();
     };
-  }, [router, initializing]); // Add initializing to dependency array
+  }, [router]); // Add router to dependency array
 
   // Function to fetch or create a user profile
   const fetchProfile = async (userId: string, email: string) => {
@@ -235,18 +221,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     setLoading(true);
     try {
-      // Clear states immediately for better UX
+      await supabase.auth.signOut();
+      // Clearing states here ensures immediate UI feedback,
+      // but onAuthStateChange will also eventually trigger.
       setSession(null);
       setUser(null);
       setProfile(null);
       
-      // Perform the actual sign out
-      await supabase.auth.signOut();
-      
-      // The auth state change listener will handle the redirect
-      // but we also do it here as a fallback for web
-      console.log('Sign out completed, redirecting...');
-      
+      // Immediately redirect to index page after sign out
+      router.replace('/(auth)');
     } catch (error: any) {
       console.error('Error signing out:', error.message);
     } finally {
