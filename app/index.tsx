@@ -26,57 +26,64 @@ export default function Index() {
 
   if (loading) {
     return (
-      
-          <ScrollView style={styles.loadingContainer}>
-            {/* Logo Section */}
-            <View style={styles.logoContainer}>
-              <View style={styles.logoBackground}>
-                <TrendingUp size={48} color="#FFF" />
-              </View>
-              <Text style={styles.logoText}>FinVerse</Text>
-              <Text style={styles.tagline}>Master Your Financial Future</Text>
+      <LinearGradient
+        colors={['#065F46', '#047857', '#059669']}
+        style={styles.container}
+      >
+        <ScrollView 
+          style={styles.container}
+          contentContainerStyle={styles.loadingContentContainer}
+        >
+          {/* Logo Section */}
+          <View style={styles.logoContainer}>
+            <View style={styles.logoBackground}>
+              <TrendingUp size={48} color="#FFF" />
             </View>
+            <Text style={styles.logoText}>FinVerse</Text>
+            <Text style={styles.tagline}>Master Your Financial Future</Text>
+          </View>
 
-            {/* Loading Animation */}
-            <View style={styles.loadingSection}>
-              <ActivityIndicator size="large" color="#FFF" />
-              <Text style={styles.loadingText}>Loading your financial journey...</Text>
-              <Text style={styles.loadingSubtext}>Preparing personalized content</Text>
-            </View>
+          {/* Loading Animation */}
+          <View style={styles.loadingSection}>
+            <ActivityIndicator size="large" color="#FFF" />
+            <Text style={styles.loadingText}>Loading your financial journey...</Text>
+            <Text style={styles.loadingSubtext}>Preparing personalized content</Text>
+          </View>
 
-            {/* Feature Highlights */}
-            <View style={styles.featuresContainer}>
-              <View style={styles.featureItem}>
-                <BookOpen size={24} color="rgba(255,255,255,0.8)" />
-                <Text style={styles.featureText}>Interactive Lessons</Text>
-              </View>
-              
-              <View style={styles.featureItem}>
-                <Sparkles size={24} color="rgba(255,255,255,0.8)" />
-                <Text style={styles.featureText}>AI-Powered Learning</Text>
-              </View>
-              
-              <View style={styles.featureItem}>
-                <TrendingUp size={24} color="rgba(255,255,255,0.8)" />
-                <Text style={styles.featureText}>Track Your Progress</Text>
-              </View>
+          {/* Feature Highlights */}
+          <View style={styles.featuresContainer}>
+            <View style={styles.featureItem}>
+              <BookOpen size={24} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.featureText}>Interactive Lessons</Text>
             </View>
+            
+            <View style={styles.featureItem}>
+              <Sparkles size={24} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.featureText}>AI-Powered Learning</Text>
+            </View>
+            
+            <View style={styles.featureItem}>
+              <TrendingUp size={24} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.featureText}>Track Your Progress</Text>
+            </View>
+          </View>
 
-            {/* Loading Progress Indicator */}
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View style={styles.progressFill} />
-              </View>
-              <Text style={styles.progressText}>Setting up your experience...</Text>
+          {/* Loading Progress Indicator */}
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View style={styles.progressFill} />
             </View>
+            <Text style={styles.progressText}>Setting up your experience...</Text>
+          </View>
 
-            {/* Footer */}
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>
-                Welcome to the future of financial education
-              </Text>
-            </View>
-          </ScrollView>
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Welcome to the future of financial education
+            </Text>
+          </View>
+        </ScrollView>
+      </LinearGradient>
     );
   }
 
@@ -96,8 +103,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: '100%',
   },
-  loadingContainer: {
-    flex: 1,
+  loadingContentContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
