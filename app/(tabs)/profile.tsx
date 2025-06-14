@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { User, Settings, Crown, BookOpen, Award, CircleHelp as HelpCircle, LogOut, ChevronRight, Globe, Bell, Shield, Star } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useUserData } from '@/hooks/useUserData';
+import { useAuth } from '@/contexts/AuthContext';
 
 const menuItems = [
   {
@@ -63,6 +64,7 @@ const menuItems = [
 
 export default function Profile() {
   const { user } = useUserData();
+  const { signOut } = useAuth();
   const router = useRouter();
 
   if (!user) {
@@ -87,9 +89,19 @@ export default function Profile() {
       'Are you sure you want to sign out?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: () => {
-          Alert.alert('Signed Out', 'You have been signed out successfully.');
-        }}
+        { 
+          text: 'Sign Out', 
+          style: 'destructive', 
+          onPress: async () => {
+            try {
+              await signOut();
+              // Navigation will be handled automatically by the AuthContext
+              // which will redirect to the auth screen when session is cleared
+            } catch (error) {
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          }
+        }
       ]
     );
   };
