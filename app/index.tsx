@@ -26,12 +26,8 @@ export default function Index() {
 
   if (loading) {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-        <LinearGradient
-          colors={['#065F46', '#047857', '#10B981']}
-          style={styles.gradient}
-        >
-          <View style={styles.loadingContainer}>
+      
+          <ScrollView style={styles.loadingContainer}>
             {/* Logo Section */}
             <View style={styles.logoContainer}>
               <View style={styles.logoBackground}>
@@ -80,9 +76,7 @@ export default function Index() {
                 Welcome to the future of financial education
               </Text>
             </View>
-          </View>
-        </LinearGradient>
-      </ScrollView>
+          </ScrollView>
     );
   }
 
