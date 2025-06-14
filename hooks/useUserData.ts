@@ -1,54 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { User } from '@/types';
 
-// Mock user data - in production, this would come from your backend/database
-const mockUser: User = {
-  id: '1',
-  name: 'Alex Johnson',
-  email: 'alex@example.com',
-  level: 3,
-  xp: 1250,
-  streak: 7,
-  currency: 'USD',
-  region: 'US',
-  completedLessons: ['1', '2', '3'],
-  achievements: [
-    {
-      id: '1',
-      title: 'First Steps',
-      description: 'Complete your first lesson',
-      iconName: 'Star',
-      unlockedAt: new Date(),
-      xpReward: 50
-    },
-    {
-      id: '2',
-      title: 'Streak Master',
-      description: 'Maintain a 7-day learning streak',
-      iconName: 'Flame',
-      unlockedAt: new Date(),
-      xpReward: 100
-    }
-  ],
-  subscriptionStatus: 'free'
-};
-
 export function useUserData() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { profile, loading, updateProfile } = useAuth();
 
-  useEffect(() => {
-    // Simulate loading user data
-    setTimeout(() => {
-      setUser(mockUser);
-      setLoading(false);
-    }, 1000);
-  }, []);
+  // Convert Supabase profile to app User type
+  const user: User | null = profile ? {
+    id: profile.id,
+    name: profile.full_name,
+    email: profile.email,
+    avatarUrl: profile.avatar_url,
+    level: profile.level,
+    xp: profile.xp,
+    streak: profile.streak,
+    currency: profile.currency,
+    region: profile.region,
+    completedLessons: profile.completed_lessons,
+    achievements: profile.achievements,
+    subscriptionStatus: profile.subscription_status,
+  } : null;
 
-  const updateUser = (updates: Partial<User>) => {
-    if (user) {
-      setUser({ ...user, ...updates });
-    }
+  const updateUser = async (updates: Partial<User>) => {
+    // Convert User updates to profile updates
+    const profileUpdates: any = {};
+    
+    if (updates.name) profileUpdates.full_name = updates.name;
+    if (updates.avatarUrl) profileUpdates.avatar_url = updates.avatarUrl;
+    if (updates.level !== undefined) profileUpdates.level = updates.level;
+    if (updates.xp !== undefined) profileUpdates.xp = updates.xp;
+    if (updates.streak !== undefined) profileUpdates.streak = updates.streak;
+    if (updates.currency) profileUpdates.currency = updates.currency;
+    if (updates.region) profileUpdates.region = updates.region;
+    if (updates.completedLessons) profileUpdates.completed_lessons = updates.completedLessons;
+    if (updates.achievements) profileUpdates.achievements = updates.achievements;
+    if (updates.subscriptionStatus) profileUpdates.subscription_status = updates.subscriptionStatus;
+
+    return await updateProfile(profileUpdates);
   };
 
   return { user, loading, updateUser };
