@@ -90,11 +90,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // If no user, clear profile and stop loading
           setProfile(null);
           setLoading(false);
-          
-          // Redirect to index page when user signs out
-          if (event === 'SIGNED_OUT') {
-            router.replace('/');
-          }
         }
       }
     );
@@ -232,6 +227,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(null);
       setUser(null);
       setProfile(null);
+      
+      // Immediately redirect to index page after sign out
+      router.replace('/');
     } catch (error: any) {
       console.error('Error signing out:', error.message);
     } finally {
