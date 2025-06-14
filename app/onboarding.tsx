@@ -126,19 +126,25 @@ export default function Onboarding() {
       case 'PersonalInfo':
         return (
           <View style={styles.stepContent}>
-            <Text style={styles.welcomeText}>
-              Hi {profile?.full_name?.split(' ')[0] || 'there'}! 👋
-            </Text>
-            <Text style={styles.descriptionText}>
-              We're excited to help you master your finances. Let's set up your personalized learning experience in just a few steps.
-            </Text>
+            <View style={styles.welcomeContainer}>
+              <Text style={styles.welcomeText}>
+                Hi {profile?.full_name?.split(' ')[0] || 'there'}! 👋
+              </Text>
+              <Text style={styles.descriptionText}>
+                We're excited to help you master your finances. Let's set up your personalized learning experience in just a few steps.
+              </Text>
+            </View>
           </View>
         );
 
       case 'Goals':
         return (
           <View style={styles.stepContent}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              style={styles.scrollContainer}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
               {goals.map((goal) => (
                 <TouchableOpacity
                   key={goal.id}
@@ -147,6 +153,7 @@ export default function Onboarding() {
                     selectedGoal === goal.id && styles.selectedOption
                   ]}
                   onPress={() => setSelectedGoal(goal.id)}
+                  activeOpacity={0.7}
                 >
                   <Text style={[
                     styles.optionTitle,
@@ -169,36 +176,43 @@ export default function Onboarding() {
       case 'Knowledge':
         return (
           <View style={styles.stepContent}>
-            {knowledgeLevels.map((level) => (
-              <TouchableOpacity
-                key={level.id}
-                style={[
-                  styles.optionCard,
-                  selectedKnowledge === level.id && styles.selectedOption
-                ]}
-                onPress={() => setSelectedKnowledge(level.id)}
-              >
-                <Text style={[
-                  styles.optionTitle,
-                  selectedKnowledge === level.id && styles.selectedOptionText
-                ]}>
-                  {level.title}
-                </Text>
-                <Text style={[
-                  styles.optionDescription,
-                  selectedKnowledge === level.id && styles.selectedOptionDescription
-                ]}>
-                  {level.description}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            <View style={styles.optionsContainer}>
+              {knowledgeLevels.map((level) => (
+                <TouchableOpacity
+                  key={level.id}
+                  style={[
+                    styles.optionCard,
+                    selectedKnowledge === level.id && styles.selectedOption
+                  ]}
+                  onPress={() => setSelectedKnowledge(level.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.optionTitle,
+                    selectedKnowledge === level.id && styles.selectedOptionText
+                  ]}>
+                    {level.title}
+                  </Text>
+                  <Text style={[
+                    styles.optionDescription,
+                    selectedKnowledge === level.id && styles.selectedOptionDescription
+                  ]}>
+                    {level.description}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         );
 
       case 'Currency':
         return (
           <View style={styles.stepContent}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              style={styles.scrollContainer}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
               {currencies.map((currency) => (
                 <TouchableOpacity
                   key={currency.id}
@@ -207,6 +221,7 @@ export default function Onboarding() {
                     selectedCurrency === currency.id && styles.selectedOption
                   ]}
                   onPress={() => setSelectedCurrency(currency.id)}
+                  activeOpacity={0.7}
                 >
                   <Text style={[
                     styles.optionTitle,
@@ -270,6 +285,7 @@ export default function Onboarding() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBack}
+            activeOpacity={0.7}
           >
             <ChevronLeft size={20} color="#6B7280" />
             <Text style={styles.backButtonText}>Back</Text>
@@ -284,6 +300,7 @@ export default function Onboarding() {
           ]}
           onPress={handleNext}
           disabled={!canProceed() || loading}
+          activeOpacity={0.8}
         >
           <Text style={styles.nextButtonText}>
             {loading ? 'Completing...' : currentStep === onboardingSteps.length - 1 ? 'Get Started' : 'Continue'}
@@ -363,6 +380,12 @@ const styles = StyleSheet.create({
   stepContent: {
     flex: 1,
   },
+  welcomeContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
   welcomeText: {
     fontSize: 28,
     fontFamily: 'Poppins-Bold',
@@ -376,6 +399,16 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     lineHeight: 24,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  optionsContainer: {
+    flex: 1,
+    justifyContent: 'center',
   },
   optionCard: {
     backgroundColor: '#FFF',
@@ -415,6 +448,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 24,
     paddingVertical: 24,
+    paddingBottom: 40,
     gap: 16,
   },
   backButton: {
