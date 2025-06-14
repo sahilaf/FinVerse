@@ -1,5 +1,11 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, Redirect } from 'expo-router';
 import { TrendingUp, Sparkles, BookOpen } from 'lucide-react-native';
@@ -12,26 +18,26 @@ export default function Index() {
   useEffect(() => {
     if (!loading) {
       if (!session) {
-        // No session, redirect to auth
         router.replace('/(auth)');
-      } else if (profile && !profile.onboarding_completed) {
-        // User exists but hasn't completed onboarding
+      } else if (profile === null) {
+        // Handle profile creation delay
+        console.log('Profile still loading...');
+      } else if (!profile.onboarding_completed) {
         router.replace('/onboarding');
-      } else if (profile && profile.onboarding_completed) {
-        // User exists and has completed onboarding, go to dashboard
+      } else {
         router.replace('/(tabs)');
       }
     }
   }, [session, profile, loading, router]);
 
-  if (loading) {
+  if (loading || profile === null) {
     return (
       <View style={styles.container}>
         <LinearGradient
           colors={['#065F46', '#047857', '#059669']}
           style={styles.gradient}
         >
-          <ScrollView 
+          <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
@@ -48,8 +54,12 @@ export default function Index() {
             {/* Loading Animation */}
             <View style={styles.loadingSection}>
               <ActivityIndicator size="large" color="#FFF" />
-              <Text style={styles.loadingText}>Loading your financial journey...</Text>
-              <Text style={styles.loadingSubtext}>Preparing personalized content</Text>
+              <Text style={styles.loadingText}>
+                Loading your financial journey...
+              </Text>
+              <Text style={styles.loadingSubtext}>
+                Preparing personalized content
+              </Text>
             </View>
 
             {/* Feature Highlights */}
@@ -58,12 +68,12 @@ export default function Index() {
                 <BookOpen size={24} color="rgba(255,255,255,0.8)" />
                 <Text style={styles.featureText}>Interactive Lessons</Text>
               </View>
-              
+
               <View style={styles.featureItem}>
                 <Sparkles size={24} color="rgba(255,255,255,0.8)" />
                 <Text style={styles.featureText}>AI-Powered Learning</Text>
               </View>
-              
+
               <View style={styles.featureItem}>
                 <TrendingUp size={24} color="rgba(255,255,255,0.8)" />
                 <Text style={styles.featureText}>Track Your Progress</Text>
@@ -75,7 +85,9 @@ export default function Index() {
               <View style={styles.progressBar}>
                 <View style={styles.progressFill} />
               </View>
-              <Text style={styles.progressText}>Setting up your experience...</Text>
+              <Text style={styles.progressText}>
+                Setting up your experience...
+              </Text>
             </View>
 
             {/* Footer */}

@@ -18,7 +18,6 @@ export default function SignIn() {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-
     setLoading(true);
     const { error } = await signIn(email, password);
     setLoading(false);
@@ -26,6 +25,10 @@ export default function SignIn() {
     if (error) {
       Alert.alert('Sign In Failed', error.message);
     }
+    else {
+    // ✅ Navigate to the tabs layout
+    router.replace('/(tabs)');
+  }
   };
 
   return (

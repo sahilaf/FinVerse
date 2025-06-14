@@ -9,7 +9,11 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string
+  ) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
@@ -41,35 +45,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
+    const initAuth = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) console.error('Initial session error:', error);
+
+      const currentSession = data.session;
+      setSession(currentSession);
+      const currentUser = currentSession?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        await fetchProfile(currentUser.id, currentUser.email!);
       } else {
         setLoading(false);
       }
-    });
+    };
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setLoading(false);
+    initAuth();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        setSession(session);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        if (currentUser) {
+          await fetchProfile(currentUser.id, currentUser.email!);
+        } else {
+          setProfile(null);
+          setLoading(false);
+        }
       }
-    });
+    );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, email: string) => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -81,16 +96,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Error fetching profile:', error);
         setProfile(null);
-      } else if (data) {
-        console.log('Profile fetched:', data.full_name, 'Onboarding completed:', data.onboarding_completed);
+        return;
+      }
+
+      if (data) {
+        console.log('Profile fetched:', data.full_name, 'Onboarding:', data.onboarding_completed);
         setProfile(data);
       } else {
-        // No profile found - data is null
-        console.log('No profile found for user:', userId);
-        setProfile(null);
+        // No profile found - create a default one
+        const { error: insertError } = await supabase.from('profiles').insert({
+          id: userId,
+          email,
+          full_name: 'User',
+          onboarding_completed: false,
+          level: 1,
+          xp: 0,
+          streak: 0,
+          currency: 'USD',
+          region: 'US',
+          completed_lessons: [],
+          achievements: [],
+          subscription_status: 'free',
+        });
+
+        if (insertError) {
+          console.error('Failed to create default profile:', insertError);
+        } else {
+          // Try fetching again
+          const { data: newProfile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+
+          setProfile(newProfile ?? null);
+        }
       }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+    } catch (error: any) {
+      console.error('Unexpected error fetching profile:', error.message);
       setProfile(null);
     } finally {
       setLoading(false);
@@ -108,32 +151,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) return { error };
 
       if (data.user) {
-        // Create profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: data.user.email!,
-            full_name: fullName,
-            level: 1,
-            xp: 0,
-            streak: 0,
-            currency: 'USD',
-            region: 'US',
-            completed_lessons: [],
-            achievements: [],
-            subscription_status: 'free',
-            onboarding_completed: false,
-          });
+        const { error: profileError } = await supabase.from('profiles').insert({
+          id: data.user.id,
+          email: data.user.email!,
+          full_name: fullName,
+          level: 1,
+          xp: 0,
+          streak: 0,
+          currency: 'USD',
+          region: 'US',
+          completed_lessons: [],
+          achievements: [],
+          subscription_status: 'free',
+          onboarding_completed: false,
+        });
 
         if (profileError) {
-          console.error('Error creating profile:', profileError);
+          console.error('Error creating profile on signup:', profileError);
           return { error: profileError };
         }
       }
 
       return { error: null };
-    } catch (error) {
+    } catch (error: any) {
       return { error };
     } finally {
       setLoading(false);
@@ -143,12 +183,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       return { error };
-    } catch (error) {
+    } catch (error: any) {
       return { error };
     } finally {
       setLoading(false);
@@ -156,36 +193,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    setLoading(true);
-    await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setProfile(null);
-    setLoading(false);
+    try {
+      setLoading(true);
+      await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+    } catch (error: any) {
+      console.error('Error signing out:', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: new Error('No user logged in') };
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select()
+        .single();
 
-      if (!error && profile) {
-        const updatedProfile = { ...profile, ...updates };
-        setProfile(updatedProfile);
-        console.log('Profile updated:', updatedProfile.full_name, 'Onboarding completed:', updatedProfile.onboarding_completed);
+      if (error) return { error };
+      if (data) {
+        setProfile(data);
+        return { error: null };
       }
 
-      return { error };
-    } catch (error) {
+      return { error: new Error('Failed to update profile') };
+    } catch (error: any) {
       return { error };
     }
   };
 
-  const value = {
+  const value: AuthContextType = {
     session,
     user,
     profile,
@@ -196,9 +240,5 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateProfile,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

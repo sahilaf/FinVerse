@@ -11,6 +11,8 @@ export interface User {
   completedLessons: string[];
   achievements: Achievement[];
   subscriptionStatus: 'free' | 'premium';
+  goal?: string;
+  
 }
 
 export interface Lesson {

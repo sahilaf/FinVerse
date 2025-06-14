@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState , useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -83,27 +83,35 @@ export default function Onboarding() {
     }
   };
 
-  const handleComplete = async () => {
-    if (!selectedGoal || !selectedKnowledge) {
-      Alert.alert('Please complete all steps', 'Make sure to select your goal and knowledge level');
-      return;
-    }
+  // In handleComplete:
+const handleComplete = async () => {
+  if (!selectedGoal || !selectedKnowledge) {
+    Alert.alert('Please complete all steps');
+    return;
+  }
 
-    setLoading(true);
-    const { error } = await updateProfile({
-      currency: selectedCurrency,
-      onboarding_completed: true,
-    });
+  setLoading(true);
+  const { error } = await updateProfile({
+    goal: selectedGoal,
+    knowledge_level: selectedKnowledge,
+    currency: selectedCurrency,
+    onboarding_completed: true,
+  });
 
-    setLoading(false);
+  setLoading(false);
 
-    if (error) {
-      Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
-    } else {
-      // Navigate to the main app (tabs)
-      router.replace('/(tabs)');
-    }
-  };
+  if (error) {
+    Alert.alert('Error', 'Failed to save profile');
+  }
+  // No redirect here - let index screen handle it
+};
+
+// Add useEffect to handle completion
+useEffect(() => {
+  if (profile?.onboarding_completed) {
+    router.replace('/(tabs)');
+  }
+}, [profile, router]);
 
   const canProceed = () => {
     switch (currentStep) {
