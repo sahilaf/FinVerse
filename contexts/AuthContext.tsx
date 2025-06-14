@@ -78,14 +78,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching profile:', error);
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No profile found - explicitly set profile to null
+          console.log('No profile found for user:', userId);
+          setProfile(null);
+        } else {
+          console.error('Error fetching profile:', error);
+          setProfile(null);
+        }
       } else if (data) {
         console.log('Profile fetched:', data.full_name, 'Onboarding completed:', data.onboarding_completed);
         setProfile(data);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
