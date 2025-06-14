@@ -54,6 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -70,6 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -79,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error);
       } else if (data) {
+        console.log('Profile fetched:', data.full_name, 'Onboarding completed:', data.onboarding_completed);
         setProfile(data);
       }
     } catch (error) {
@@ -90,6 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -125,11 +129,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: null };
     } catch (error) {
       return { error };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -137,11 +144,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error };
     } catch (error) {
       return { error };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
+    setLoading(true);
     await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setLoading(false);
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
@@ -154,7 +168,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', user.id);
 
       if (!error && profile) {
-        setProfile({ ...profile, ...updates });
+        const updatedProfile = { ...profile, ...updates };
+        setProfile(updatedProfile);
+        console.log('Profile updated:', updatedProfile.full_name, 'Onboarding completed:', updatedProfile.onboarding_completed);
       }
 
       return { error };
