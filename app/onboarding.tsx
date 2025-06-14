@@ -1,54 +1,101 @@
-import React, { useState , useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ChevronRight, ChevronLeft, TrendingUp, DollarSign, Target, BookOpen } from 'lucide-react-native';
+import {
+  ChevronRight,
+  ChevronLeft,
+  TrendingUp,
+  DollarSign,
+  Target,
+  BookOpen,
+} from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 
 const onboardingSteps = [
   {
     id: 1,
     title: 'Welcome to FinVerse!',
-    subtitle: 'Let\'s personalize your financial education journey',
+    subtitle: "Let's personalize your financial education journey",
     icon: TrendingUp,
-    content: 'PersonalInfo'
+    content: 'PersonalInfo',
   },
   {
     id: 2,
-    title: 'What\'s your financial goal?',
+    title: "What's your financial goal?",
     subtitle: 'This helps us recommend the best content for you',
     icon: Target,
-    content: 'Goals'
+    content: 'Goals',
   },
   {
     id: 3,
     title: 'Current financial knowledge?',
-    subtitle: 'Be honest - we\'ll tailor lessons to your level',
+    subtitle: "Be honest - we'll tailor lessons to your level",
     icon: BookOpen,
-    content: 'Knowledge'
+    content: 'Knowledge',
   },
   {
     id: 4,
     title: 'Preferred currency?',
-    subtitle: 'We\'ll show examples in your local currency',
+    subtitle: "We'll show examples in your local currency",
     icon: DollarSign,
-    content: 'Currency'
-  }
+    content: 'Currency',
+  },
 ];
 
 const goals = [
-  { id: 'budgeting', title: 'Better Budgeting', description: 'Learn to manage money effectively' },
-  { id: 'saving', title: 'Build Savings', description: 'Create an emergency fund and save more' },
-  { id: 'investing', title: 'Start Investing', description: 'Grow wealth through smart investments' },
-  { id: 'debt', title: 'Pay Off Debt', description: 'Eliminate debt and improve credit' },
-  { id: 'retirement', title: 'Plan Retirement', description: 'Secure your financial future' },
-  { id: 'general', title: 'General Knowledge', description: 'Learn all aspects of personal finance' }
+  {
+    id: 'budgeting',
+    title: 'Better Budgeting',
+    description: 'Learn to manage money effectively',
+  },
+  {
+    id: 'saving',
+    title: 'Build Savings',
+    description: 'Create an emergency fund and save more',
+  },
+  {
+    id: 'investing',
+    title: 'Start Investing',
+    description: 'Grow wealth through smart investments',
+  },
+  {
+    id: 'debt',
+    title: 'Pay Off Debt',
+    description: 'Eliminate debt and improve credit',
+  },
+  {
+    id: 'retirement',
+    title: 'Plan Retirement',
+    description: 'Secure your financial future',
+  },
+  {
+    id: 'general',
+    title: 'General Knowledge',
+    description: 'Learn all aspects of personal finance',
+  },
 ];
 
 const knowledgeLevels = [
   { id: 'beginner', title: 'Beginner', description: 'New to personal finance' },
-  { id: 'intermediate', title: 'Intermediate', description: 'Some experience with money management' },
-  { id: 'advanced', title: 'Advanced', description: 'Experienced with financial concepts' }
+  {
+    id: 'intermediate',
+    title: 'Intermediate',
+    description: 'Some experience with money management',
+  },
+  {
+    id: 'advanced',
+    title: 'Advanced',
+    description: 'Experienced with financial concepts',
+  },
 ];
 
 const currencies = [
@@ -57,7 +104,7 @@ const currencies = [
   { id: 'GBP', title: 'British Pound', symbol: '£' },
   { id: 'CAD', title: 'Canadian Dollar', symbol: 'C$' },
   { id: 'AUD', title: 'Australian Dollar', symbol: 'A$' },
-  { id: 'INR', title: 'Indian Rupee', symbol: '₹' }
+  { id: 'INR', title: 'Indian Rupee', symbol: '₹' },
 ];
 
 export default function Onboarding() {
@@ -73,6 +120,11 @@ export default function Onboarding() {
     if (currentStep < onboardingSteps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
+      // Validate all selections before completing
+      if (!selectedGoal || !selectedKnowledge || !selectedCurrency) {
+        Alert.alert('Incomplete Setup', 'Please make selections in all steps');
+        return;
+      }
       handleComplete();
     }
   };
@@ -84,34 +136,29 @@ export default function Onboarding() {
   };
 
   // In handleComplete:
-const handleComplete = async () => {
-  if (!selectedGoal || !selectedKnowledge) {
-    Alert.alert('Please complete all steps');
-    return;
-  }
+  const handleComplete = async () => {
+    if (!selectedGoal || !selectedKnowledge) {
+      Alert.alert('Please complete all steps');
+      return;
+    }
 
-  setLoading(true);
-  const { error } = await updateProfile({
-    goal: selectedGoal,
-    knowledge_level: selectedKnowledge,
-    currency: selectedCurrency,
-    onboarding_completed: true,
-  });
+    setLoading(true);
+    const { error } = await updateProfile({
+      goal: selectedGoal,
+      knowledge_level: selectedKnowledge,
+      currency: selectedCurrency,
+      onboarding_completed: true,
+    });
 
-  setLoading(false);
+    setLoading(false);
 
-  if (error) {
-    Alert.alert('Error', 'Failed to save profile');
-  }
-  // No redirect here - let index screen handle it
-};
-
-// Add useEffect to handle completion
-useEffect(() => {
-  if (profile?.onboarding_completed) {
-    router.replace('/(tabs)');
-  }
-}, [profile, router]);
+    if (error) {
+      Alert.alert('Error', 'Failed to save profile');
+    } else {
+      // Redirect immediately after successful update
+      router.replace('/(tabs)');
+    }
+  };
 
   const canProceed = () => {
     switch (currentStep) {
@@ -140,7 +187,8 @@ useEffect(() => {
                 Hi {profile?.full_name?.split(' ')[0] || 'there'}! 👋
               </Text>
               <Text style={styles.descriptionText}>
-                We're excited to help you master your finances. Let's set up your personalized learning experience in just a few steps.
+                We're excited to help you master your finances. Let's set up
+                your personalized learning experience in just a few steps.
               </Text>
             </View>
           </View>
@@ -149,7 +197,7 @@ useEffect(() => {
       case 'Goals':
         return (
           <View style={styles.stepContent}>
-            <ScrollView 
+            <ScrollView
               style={styles.scrollContainer}
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
@@ -159,21 +207,26 @@ useEffect(() => {
                   key={goal.id}
                   style={[
                     styles.optionCard,
-                    selectedGoal === goal.id && styles.selectedOption
+                    selectedGoal === goal.id && styles.selectedOption,
                   ]}
                   onPress={() => setSelectedGoal(goal.id)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[
-                    styles.optionTitle,
-                    selectedGoal === goal.id && styles.selectedOptionText
-                  ]}>
+                  <Text
+                    style={[
+                      styles.optionTitle,
+                      selectedGoal === goal.id && styles.selectedOptionText,
+                    ]}
+                  >
                     {goal.title}
                   </Text>
-                  <Text style={[
-                    styles.optionDescription,
-                    selectedGoal === goal.id && styles.selectedOptionDescription
-                  ]}>
+                  <Text
+                    style={[
+                      styles.optionDescription,
+                      selectedGoal === goal.id &&
+                        styles.selectedOptionDescription,
+                    ]}
+                  >
                     {goal.description}
                   </Text>
                 </TouchableOpacity>
@@ -191,21 +244,27 @@ useEffect(() => {
                   key={level.id}
                   style={[
                     styles.optionCard,
-                    selectedKnowledge === level.id && styles.selectedOption
+                    selectedKnowledge === level.id && styles.selectedOption,
                   ]}
                   onPress={() => setSelectedKnowledge(level.id)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[
-                    styles.optionTitle,
-                    selectedKnowledge === level.id && styles.selectedOptionText
-                  ]}>
+                  <Text
+                    style={[
+                      styles.optionTitle,
+                      selectedKnowledge === level.id &&
+                        styles.selectedOptionText,
+                    ]}
+                  >
                     {level.title}
                   </Text>
-                  <Text style={[
-                    styles.optionDescription,
-                    selectedKnowledge === level.id && styles.selectedOptionDescription
-                  ]}>
+                  <Text
+                    style={[
+                      styles.optionDescription,
+                      selectedKnowledge === level.id &&
+                        styles.selectedOptionDescription,
+                    ]}
+                  >
                     {level.description}
                   </Text>
                 </TouchableOpacity>
@@ -217,7 +276,7 @@ useEffect(() => {
       case 'Currency':
         return (
           <View style={styles.stepContent}>
-            <ScrollView 
+            <ScrollView
               style={styles.scrollContainer}
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
@@ -227,15 +286,18 @@ useEffect(() => {
                   key={currency.id}
                   style={[
                     styles.optionCard,
-                    selectedCurrency === currency.id && styles.selectedOption
+                    selectedCurrency === currency.id && styles.selectedOption,
                   ]}
                   onPress={() => setSelectedCurrency(currency.id)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[
-                    styles.optionTitle,
-                    selectedCurrency === currency.id && styles.selectedOptionText
-                  ]}>
+                  <Text
+                    style={[
+                      styles.optionTitle,
+                      selectedCurrency === currency.id &&
+                        styles.selectedOptionText,
+                    ]}
+                  >
                     {currency.symbol} {currency.title}
                   </Text>
                 </TouchableOpacity>
@@ -254,18 +316,19 @@ useEffect(() => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#065F46', '#047857']}
-        style={styles.header}
-      >
+      <LinearGradient colors={['#065F46', '#047857']} style={styles.header}>
         {/* Progress Indicator */}
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
-            <View 
+            <View
               style={[
                 styles.progressFill,
-                { width: `${((currentStep + 1) / onboardingSteps.length) * 100}%` }
-              ]} 
+                {
+                  width: `${
+                    ((currentStep + 1) / onboardingSteps.length) * 100
+                  }%`,
+                },
+              ]}
             />
           </View>
           <Text style={styles.progressText}>
@@ -284,9 +347,7 @@ useEffect(() => {
       </LinearGradient>
 
       {/* Content */}
-      <View style={styles.content}>
-        {renderStepContent()}
-      </View>
+      <View style={styles.content}>{renderStepContent()}</View>
 
       {/* Navigation */}
       <View style={styles.navigation}>
@@ -305,17 +366,25 @@ useEffect(() => {
           style={[
             styles.nextButton,
             !canProceed() && styles.disabledButton,
-            currentStep === 0 && styles.fullWidthButton
+            currentStep === 0 && styles.fullWidthButton,
           ]}
           onPress={handleNext}
           disabled={!canProceed() || loading}
           activeOpacity={0.8}
         >
-          <Text style={styles.nextButtonText}>
-            {loading ? 'Completing...' : currentStep === onboardingSteps.length - 1 ? 'Get Started' : 'Continue'}
-          </Text>
-          {currentStep < onboardingSteps.length - 1 && (
-            <ChevronRight size={20} color="#FFF" />
+          {loading ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <>
+              <Text style={styles.nextButtonText}>
+                {currentStep === onboardingSteps.length - 1
+                  ? 'Get Started'
+                  : 'Continue'}
+              </Text>
+              {currentStep < onboardingSteps.length - 1 && (
+                <ChevronRight size={20} color="#FFF" />
+              )}
+            </>
           )}
         </TouchableOpacity>
       </View>

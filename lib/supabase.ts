@@ -59,6 +59,9 @@ export type Database = {
           onboarding_completed: boolean;
           created_at: string;
           updated_at: string;
+          // ADDED THESE NEW COLUMNS
+          goal?: string; // Add goal column
+          knowledge_level?: string; // Add knowledge_level column
         };
         Insert: {
           id: string;
@@ -76,6 +79,9 @@ export type Database = {
           onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;
+          // ADDED THESE NEW COLUMNS
+          goal?: string; // Add goal column
+          knowledge_level?: string; // Add knowledge_level column
         };
         Update: {
           id?: string;
@@ -93,6 +99,9 @@ export type Database = {
           onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;
+          // ADDED THESE NEW COLUMNS
+          goal?: string; // Add goal column
+          knowledge_level?: string; // Add knowledge_level column
         };
       };
     };
