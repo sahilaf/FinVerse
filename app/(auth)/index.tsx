@@ -5,11 +5,7 @@ import { useRouter } from 'expo-router';
 import { TrendingUp, Shield, Users, Sparkles } from 'lucide-react-native';
 
 const features = [
-  {
-    icon: TrendingUp,
-    title: 'Smart Learning',
-    description: 'AI-powered lessons tailored to your pace'
-  }
+  
 ];
 
 export default function Welcome() {
