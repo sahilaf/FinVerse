@@ -311,9 +311,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsInitialized(false); // Reset initialization state
 
       if (Platform.OS === 'web') {
-        window.location.href = '/(auth)';
+        window.location.href = '/';
       } else {
-        router.replace('/(auth)');
+        router.replace('/');
       }
     } catch (error: any) {
       console.error('Error signing out:', error.message);
