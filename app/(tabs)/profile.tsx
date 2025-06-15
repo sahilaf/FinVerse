@@ -84,23 +84,39 @@ export default function Profile() {
   };
 
   const handleLogout = () => {
+    console.log('🔄 Profile: Logout button pressed');
+    
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Cancel', 
+          style: 'cancel',
+          onPress: () => console.log('🔄 Profile: Logout cancelled')
+        },
         { 
           text: 'Sign Out', 
           style: 'destructive', 
           onPress: async () => {
+            console.log('🔄 Profile: User confirmed logout');
             try {
-              console.log('Starting signout process...');
+              console.log('🔄 Profile: Starting signout process...');
               await signOut();
-              console.log('Signout completed successfully');
+              console.log('✅ Profile: Signout completed successfully');
               // The AuthContext will handle navigation automatically
             } catch (error) {
-              console.error('Signout error:', error);
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
+              console.error('❌ Profile: Signout error:', error);
+              Alert.alert(
+                'Error', 
+                'Failed to sign out. Please try again.',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => console.log('🔄 Profile: Error alert dismissed')
+                  }
+                ]
+              );
             }
           }
         }

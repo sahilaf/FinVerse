@@ -286,49 +286,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Function for user sign-out
   const signOut = async () => {
-    console.log('SignOut: Starting signout process...');
+    console.log('🔄 SignOut: Starting signout process...');
+    console.log('🔄 Current session exists:', !!session);
+    console.log('🔄 Current user exists:', !!user);
+    console.log('🔄 Platform:', Platform.OS);
+    
     setLoading(true);
     
     try {
-      // Clear local state first
+      // Step 1: Clear local state immediately
+      console.log('🔄 Step 1: Clearing local state...');
       setSession(null);
       setUser(null);
       setProfile(null);
       setIsInitialized(false);
+      console.log('✅ Local state cleared');
       
-      // Clear Supabase session
+      // Step 2: Clear Supabase session
+      console.log('🔄 Step 2: Calling Supabase signOut...');
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('Supabase signOut error:', error);
+        console.error('❌ Supabase signOut error:', error);
         throw error;
       }
+      console.log('✅ Supabase session cleared');
 
-      // Clear localStorage on web
+      // Step 3: Clear localStorage on web
       if (Platform.OS === 'web') {
+        console.log('🔄 Step 3: Clearing web localStorage...');
         try {
+          // Get all localStorage keys before clearing
+          const keysToRemove = Object.keys(localStorage).filter(key => 
+            key.startsWith('supabase.auth')
+          );
+          console.log('🔄 Found Supabase keys to remove:', keysToRemove);
+          
           // Clear all Supabase auth keys
-          Object.keys(localStorage).forEach((key) => {
-            if (key.startsWith('supabase.auth')) {
-              localStorage.removeItem(key);
-            }
+          keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            console.log('🗑️ Removed key:', key);
           });
+          
+          console.log('✅ localStorage cleared');
         } catch (e) {
-          console.warn('Failed to clear localStorage:', e);
+          console.warn('⚠️ Failed to clear localStorage:', e);
         }
       }
 
-      console.log('SignOut: Session cleared, navigating to auth...');
+      // Step 4: Navigate to auth screen
+      console.log('🔄 Step 4: Navigating to auth screen...');
       
-      // Use router.replace for proper navigation
-      router.replace('/(auth)');
-      
-      console.log('SignOut: Navigation completed');
+      // Add a small delay to ensure state is cleared
+      setTimeout(() => {
+        router.replace('/(auth)');
+        console.log('✅ Navigation to /(auth) completed');
+      }, 100);
       
     } catch (error: any) {
-      console.error('Error signing out:', error.message);
+      console.error('❌ Error during signout:', error.message);
+      console.error('❌ Full error:', error);
       throw error; // Re-throw so the UI can handle it
     } finally {
       setLoading(false);
+      console.log('🔄 SignOut process completed (loading set to false)');
     }
   };
 
