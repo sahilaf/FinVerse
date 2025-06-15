@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { useRouter } from 'expo-router';
 import { supabase, Database } from '@/lib/supabase'; // Assuming '@/lib/supabase' is correctly configured
-
+import { Platform } from 'react-native';
 // Define the Profile type from your Supabase database schema
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -43,7 +43,9 @@ export const useAuth = () => {
 };
 
 // AuthProvider component to manage authentication state
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -118,25 +120,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data) {
         // Profile found
-        console.log('Profile fetched:', data.full_name, 'Onboarding:', data.onboarding_completed);
+        console.log(
+          'Profile fetched:',
+          data.full_name,
+          'Onboarding:',
+          data.onboarding_completed
+        );
         setProfile(data);
       } else {
         // No profile found - create a default one
         console.log('No profile found, creating default profile for:', email);
-        const { data: insertData, error: insertError } = await supabase.from('profiles').insert({
-          id: userId,
-          email,
-          full_name: 'User', // Default full name
-          onboarding_completed: false, // Default to false for new users
-          level: 1,
-          xp: 0,
-          streak: 0,
-          currency: 'USD',
-          region: 'US',
-          completed_lessons: [],
-          achievements: [],
-          subscription_status: 'free',
-        }).select().single(); // Select the newly inserted row
+        const { data: insertData, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            email,
+            full_name: 'User', // Default full name
+            onboarding_completed: false, // Default to false for new users
+            level: 1,
+            xp: 0,
+            streak: 0,
+            currency: 'USD',
+            region: 'US',
+            completed_lessons: [],
+            achievements: [],
+            subscription_status: 'free',
+          })
+          .select()
+          .single(); // Select the newly inserted row
 
         if (insertError) {
           console.error('Failed to create default profile:', insertError);
@@ -148,7 +159,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     } catch (error: any) {
-      console.error('Unexpected error fetching/creating profile:', error.message);
+      console.error(
+        'Unexpected error fetching/creating profile:',
+        error.message
+      );
       setProfile(null);
     } finally {
       setLoading(false); // Always stop loading after profile operation
@@ -157,20 +171,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Function for user sign-up
   const signUp = async (email: string, password: string, fullName: string) => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+  setLoading(true);
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-      if (error) {
-        setLoading(false); // Stop loading on signup error
-        return { error };
+    if (error) {
+      setLoading(false);
+      return { error };
+    }
+
+    if (data.user) {
+      // Check if profile already exists
+      const { data: existingProfile, error: profileCheckError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileCheckError && profileCheckError.code !== 'PGRST116') {
+        // PGRST116 means no rows found, which is expected for new users
+        console.error('Error checking profile:', profileCheckError);
+        setLoading(false);
+        return { error: profileCheckError };
       }
 
-      if (data.user) {
-        // Create profile immediately after successful user registration
+      if (!existingProfile) {
+        // Create profile only if it doesn't exist
         const { error: profileError } = await supabase.from('profiles').insert({
           id: data.user.id,
           email: data.user.email!,
@@ -188,23 +217,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (profileError) {
           console.error('Error creating profile on signup:', profileError);
-          setLoading(false); // Stop loading on profile creation error
+          setLoading(false);
           return { error: profileError };
         }
-        // Auth state change listener will handle setting user and profile after successful signup
       }
-      return { error: null };
-    } catch (error: any) {
-      setLoading(false); // Stop loading on unexpected error
-      return { error };
+
+      // Redirect to onboarding
+      router.replace('/onboarding');
     }
-  };
+    return { error: null };
+  } catch (error: any) {
+    setLoading(false);
+    return { error };
+  }
+};
 
   // Function for user sign-in
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) {
         setLoading(false); // Stop loading on signin error
         return { error };
@@ -221,15 +256,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     setLoading(true);
     try {
-      await supabase.auth.signOut();
-      // Clearing states here ensures immediate UI feedback,
-      // but onAuthStateChange will also eventually trigger.
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Supabase signOut error:', error);
+        throw error;
+      }
+
+      // Explicitly clear Supabase localStorage keys
+      if (Platform.OS === 'web') {
+        localStorage.removeItem('supabase.auth.token');
+        // Optionally clear all Supabase-related keys
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('supabase.auth')) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+
       setSession(null);
       setUser(null);
       setProfile(null);
-      
-      // Immediately redirect to index page after sign out
-      router.replace('/(auth)');
+
+      if (Platform.OS === 'web') {
+        window.location.href = '/(auth)';
+      } else {
+        router.replace('/(auth)');
+      }
     } catch (error: any) {
       console.error('Error signing out:', error.message);
     } finally {

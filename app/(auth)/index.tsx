@@ -4,9 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { TrendingUp, Shield, Users, Sparkles } from 'lucide-react-native';
 
-const features = [
-  
-];
+
 
 export default function Welcome() {
   const router = useRouter();
@@ -36,20 +34,7 @@ export default function Welcome() {
           />
         </View>
 
-        {/* Features */}
-        <View style={styles.featuresContainer}>
-          {features.map((feature, index) => (
-            <View key={index} style={styles.featureItem}>
-              <View style={styles.featureIcon}>
-                <feature.icon size={20} color="#10B981" />
-              </View>
-              <View style={styles.featureContent}>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDescription}>{feature.description}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+        
 
         {/* Action Buttons */}
         <View style={styles.actionContainer}>
