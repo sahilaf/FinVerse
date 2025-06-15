@@ -286,37 +286,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Function for user sign-out
   const signOut = async () => {
+    console.log('SignOut: Starting signout process...');
     setLoading(true);
+    
     try {
+      // Clear local state first
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setIsInitialized(false);
+      
+      // Clear Supabase session
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Supabase signOut error:', error);
         throw error;
       }
 
-      // Explicitly clear Supabase localStorage keys
+      // Clear localStorage on web
       if (Platform.OS === 'web') {
-        localStorage.removeItem('supabase.auth.token');
-        // Optionally clear all Supabase-related keys
-        Object.keys(localStorage).forEach((key) => {
-          if (key.startsWith('supabase.auth')) {
-            localStorage.removeItem(key);
-          }
-        });
+        try {
+          // Clear all Supabase auth keys
+          Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith('supabase.auth')) {
+              localStorage.removeItem(key);
+            }
+          });
+        } catch (e) {
+          console.warn('Failed to clear localStorage:', e);
+        }
       }
 
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      setIsInitialized(false); // Reset initialization state
-
-      if (Platform.OS === 'web') {
-        window.location.href = '/(auth)';
-      } else {
-        router.replace('/(auth)');
-      }
+      console.log('SignOut: Session cleared, navigating to auth...');
+      
+      // Use router.replace for proper navigation
+      router.replace('/(auth)');
+      
+      console.log('SignOut: Navigation completed');
+      
     } catch (error: any) {
       console.error('Error signing out:', error.message);
+      throw error; // Re-throw so the UI can handle it
     } finally {
       setLoading(false);
     }
