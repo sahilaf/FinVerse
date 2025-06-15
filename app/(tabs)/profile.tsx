@@ -94,12 +94,12 @@ export default function Profile() {
           style: 'destructive', 
           onPress: async () => {
             try {
-              window.location.href = '/(auth)';
+              console.log('Starting signout process...');
               await signOut();
-              
-              // Navigation will be handled automatically by the AuthContext
-              // which will redirect to the auth screen when session is cleared
+              console.log('Signout completed successfully');
+              // The AuthContext will handle navigation automatically
             } catch (error) {
+              console.error('Signout error:', error);
               Alert.alert('Error', 'Failed to sign out. Please try again.');
             }
           }
