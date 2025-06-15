@@ -285,73 +285,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // Function for user sign-out
-  const signOut = async () => {
+  // Inside AuthProvider component in AuthContext.tsx
+
+const signOut = async () => {
     console.log('🔄 SignOut: Starting signout process...');
     console.log('🔄 Current session exists:', !!session);
     console.log('🔄 Current user exists:', !!user);
     console.log('🔄 Platform:', Platform.OS);
-    
+
     setLoading(true);
-    
+
     try {
-      // Step 1: Clear local state immediately
-      console.log('🔄 Step 1: Clearing local state...');
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      setIsInitialized(false);
-      console.log('✅ Local state cleared');
-      
-      // Step 2: Clear Supabase session
-      console.log('🔄 Step 2: Calling Supabase signOut...');
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('❌ Supabase signOut error:', error);
-        throw error;
-      }
-      console.log('✅ Supabase session cleared');
-
-      // Step 3: Clear localStorage on web
-      if (Platform.OS === 'web') {
-        console.log('🔄 Step 3: Clearing web localStorage...');
-        try {
-          // Get all localStorage keys before clearing
-          const keysToRemove = Object.keys(localStorage).filter(key => 
-            key.startsWith('supabase.auth')
-          );
-          console.log('🔄 Found Supabase keys to remove:', keysToRemove);
-          
-          // Clear all Supabase auth keys
-          keysToRemove.forEach(key => {
-            localStorage.removeItem(key);
-            console.log('🗑️ Removed key:', key);
-          });
-          
-          console.log('✅ localStorage cleared');
-        } catch (e) {
-          console.warn('⚠️ Failed to clear localStorage:', e);
+        // Step 1: Call Supabase signOut first.
+        // This is crucial as it invalidates the session on the server
+        // and also attempts to clear client-side storage (localStorage/AsyncStorage).
+        console.log('🔄 Step 1: Calling Supabase signOut...');
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            console.error('❌ Supabase signOut error:', error);
+            throw error; // Re-throw the error to be caught by the outer try-catch
         }
-      }
+        console.log('✅ Supabase session cleared successfully by Supabase client.');
 
-      // Step 4: Navigate to auth screen
-      console.log('🔄 Step 4: Navigating to auth screen...');
-      
-      // Add a small delay to ensure state is cleared
-      setTimeout(() => {
+        // Step 2: Clear local state.
+        // We do this *after* the Supabase call to ensure consistency.
+        console.log('🔄 Step 2: Clearing local state...');
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        // setIsInitialized(false); // Consider if you truly need to set this to false here.
+                                // If it triggers re-initialization, it might cause a flicker.
+                                // Usually, it remains true after the first successful init.
+        console.log('✅ Local state cleared');
+
+        // Step 3: Explicitly navigate to auth screen.
+        // The auth state listener *should* handle this automatically after signOut(),
+        // but explicitly navigating here ensures it happens reliably, especially on web.
+        console.log('🔄 Step 3: Navigating to auth screen...');
+        // Using replace ensures the user can't go back to the profile screen
         router.replace('/(auth)');
         console.log('✅ Navigation to /(auth) completed');
-      }, 100);
-      
-    } catch (error: any) {
-      console.error('❌ Error during signout:', error.message);
-      console.error('❌ Full error:', error);
-      throw error; // Re-throw so the UI can handle it
-    } finally {
-      setLoading(false);
-      console.log('🔄 SignOut process completed (loading set to false)');
-    }
-  };
 
+        // Note: Manual localStorage clearing for Supabase keys is generally
+        // not needed if supabase.auth.signOut() works correctly, as it should
+        // handle its own persistent storage. Over-aggressively clearing
+        // localStorage might sometimes interfere with Supabase's internal state.
+        // If issues persist, you might reintroduce a *targeted* localStorage clear
+        // only for specific keys, but generally, let Supabase manage its own.
+
+    } catch (error: any) {
+        console.error('❌ Error during signout process:', error.message);
+        console.error('❌ Full error object:', error);
+        // Re-throw the error for the calling component (Profile) to handle with an Alert
+        throw error;
+    } finally {
+        setLoading(false);
+        console.log('🔄 SignOut process completed (loading set to false)');
+    }
+};
   // Function to update user profile
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) {
