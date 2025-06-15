@@ -50,6 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true); // Manages overall loading state for auth operations
+  const [isInitialized, setIsInitialized] = useState(false); // Track if auth has been initialized
   const router = useRouter();
 
   // Effect to initialize auth state and listen for changes
@@ -72,6 +73,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setProfile(null); // Clear profile if no user
         setLoading(false); // Stop loading if no user or profile needed
       }
+      
+      setIsInitialized(true); // Mark as initialized
     };
 
     initAuth();
@@ -80,6 +83,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
+        
+        // Don't process auth changes until initial auth is complete
+        if (!isInitialized && event !== 'SIGNED_IN') {
+          return;
+        }
+        
         setLoading(true); // Start loading on auth state change
         setSession(session);
         const currentUser = session?.user ?? null;
@@ -100,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       listener.subscription.unsubscribe();
     };
-  }, [router]); // Add router to dependency array
+  }, [router, isInitialized]); // Add isInitialized to dependency array
 
   // Function to fetch or create a user profile
   const fetchProfile = async (userId: string, email: string) => {
@@ -171,66 +180,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Function for user sign-up
   const signUp = async (email: string, password: string, fullName: string) => {
-  setLoading(true);
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-    if (error) {
+      if (error) {
+        setLoading(false);
+        return { error };
+      }
+
+      if (data.user && data.session) {
+        // User is confirmed and signed in immediately
+        console.log('User signed up and confirmed:', data.user.email);
+        
+        // Check if profile already exists
+        const { data: existingProfile, error: profileCheckError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileCheckError && profileCheckError.code !== 'PGRST116') {
+          // PGRST116 means no rows found, which is expected for new users
+          console.error('Error checking profile:', profileCheckError);
+          setLoading(false);
+          return { error: profileCheckError };
+        }
+
+        if (!existingProfile) {
+          // Create profile only if it doesn't exist
+          const { data: newProfile, error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              email: data.user.email!,
+              full_name: fullName,
+              level: 1,
+              xp: 0,
+              streak: 0,
+              currency: 'USD',
+              region: 'US',
+              completed_lessons: [],
+              achievements: [],
+              subscription_status: 'free',
+              onboarding_completed: false,
+            })
+            .select()
+            .single();
+
+          if (profileError) {
+            console.error('Error creating profile on signup:', profileError);
+            setLoading(false);
+            return { error: profileError };
+          }
+
+          // Set the profile immediately
+          setProfile(newProfile);
+        }
+
+        // Set session and user state immediately
+        setSession(data.session);
+        setUser(data.user);
+        setLoading(false);
+        
+        // Navigate to onboarding immediately
+        router.replace('/onboarding');
+        
+        return { error: null };
+      } else if (data.user && !data.session) {
+        // Email confirmation required
+        setLoading(false);
+        return { error: null }; // This will show the "check email" message
+      }
+
+      setLoading(false);
+      return { error: new Error('Unexpected signup response') };
+    } catch (error: any) {
       setLoading(false);
       return { error };
     }
-
-    if (data.user) {
-      // Check if profile already exists
-      const { data: existingProfile, error: profileCheckError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', data.user.id)
-        .single();
-
-      if (profileCheckError && profileCheckError.code !== 'PGRST116') {
-        // PGRST116 means no rows found, which is expected for new users
-        console.error('Error checking profile:', profileCheckError);
-        setLoading(false);
-        return { error: profileCheckError };
-      }
-
-      if (!existingProfile) {
-        // Create profile only if it doesn't exist
-        const { error: profileError } = await supabase.from('profiles').insert({
-          id: data.user.id,
-          email: data.user.email!,
-          full_name: fullName,
-          level: 1,
-          xp: 0,
-          streak: 0,
-          currency: 'USD',
-          region: 'US',
-          completed_lessons: [],
-          achievements: [],
-          subscription_status: 'free',
-          onboarding_completed: false,
-        });
-
-        if (profileError) {
-          console.error('Error creating profile on signup:', profileError);
-          setLoading(false);
-          return { error: profileError };
-        }
-      }
-
-      // Redirect to onboarding
-      router.replace('/onboarding');
-    }
-    return { error: null };
-  } catch (error: any) {
-    setLoading(false);
-    return { error };
-  }
-};
+  };
 
   // Function for user sign-in
   const signIn = async (email: string, password: string) => {
@@ -276,6 +308,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setSession(null);
       setUser(null);
       setProfile(null);
+      setIsInitialized(false); // Reset initialization state
 
       if (Platform.OS === 'web') {
         window.location.href = '/(auth)';

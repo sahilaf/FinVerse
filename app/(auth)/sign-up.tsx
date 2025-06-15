@@ -39,10 +39,12 @@ export default function SignUp() {
     if (error) {
       Alert.alert('Sign Up Failed', error.message);
     } else {
+      // Success case - the AuthContext will handle navigation to onboarding
+      // If email confirmation is required, show success message
       Alert.alert(
         'Success!',
-        'Account created successfully. Please check your email to verify your account.',
-        [{ text: 'OK', onPress: () => router.push('/(auth)/sign-in') }]
+        'Account created successfully. You will be redirected to complete your setup.',
+        [{ text: 'OK' }]
       );
     }
   };

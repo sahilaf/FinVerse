@@ -17,20 +17,30 @@ export default function Index() {
 
   useEffect(() => {
     if (!loading) {
+      console.log('Index: Auth state check', { 
+        hasSession: !!session, 
+        hasProfile: !!profile, 
+        onboardingCompleted: profile?.onboarding_completed 
+      });
+      
       if (!session) {
+        console.log('Index: No session, redirecting to auth');
         router.replace('/(auth)');
       } else if (profile === null) {
-        // Handle profile creation delay
-        console.log('Profile still loading...');
+        // Profile is still loading or failed to load
+        console.log('Index: Profile is null, waiting...');
       } else if (!profile.onboarding_completed) {
+        console.log('Index: Onboarding not completed, redirecting to onboarding');
         router.replace('/onboarding');
       } else {
+        console.log('Index: All checks passed, redirecting to tabs');
         router.replace('/(tabs)');
       }
     }
   }, [session, profile, loading, router]);
 
-  if (loading || profile === null) {
+  // Show loading screen while auth state is being determined
+  if (loading || (session && profile === null)) {
     return (
       <View style={styles.container}>
         <LinearGradient
@@ -55,10 +65,10 @@ export default function Index() {
             <View style={styles.loadingSection}>
               <ActivityIndicator size="large" color="#FFF" />
               <Text style={styles.loadingText}>
-                Loading your financial journey...
+                {session ? 'Setting up your profile...' : 'Loading your financial journey...'}
               </Text>
               <Text style={styles.loadingSubtext}>
-                Preparing personalized content
+                {session ? 'Almost ready!' : 'Preparing personalized content'}
               </Text>
             </View>
 
@@ -86,7 +96,7 @@ export default function Index() {
                 <View style={styles.progressFill} />
               </View>
               <Text style={styles.progressText}>
-                Setting up your experience...
+                {session ? 'Finalizing setup...' : 'Setting up your experience...'}
               </Text>
             </View>
 
