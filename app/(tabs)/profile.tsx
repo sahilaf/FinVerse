@@ -95,7 +95,7 @@ export default function Profile() {
           onPress: async () => {
             try {
               await signOut();
-              window.location.href = '/';
+              window.location.href = '/(auth)';
               // Navigation will be handled automatically by the AuthContext
               // which will redirect to the auth screen when session is cleared
             } catch (error) {
