@@ -24,17 +24,12 @@ import {
   Play,
   Pause,
   Volume2,
-  VolumeX
+  VolumeX,
+  Trash2
 } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
-
-interface Message {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-  type?: 'text' | 'video' | 'suggestion';
-}
+import { useChatMessages } from '@/hooks/useChatMessages';
+import { ChatMessage } from '@/types';
 
 const quickSuggestions = [
   "What's the difference between a 401k and IRA?",
@@ -49,15 +44,14 @@ const { width: screenWidth } = Dimensions.get('window');
 
 export default function AITutor() {
   const { user } = useUserData();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: `Hi ${user?.name?.split(' ')[0] || 'there'}! 👋 I'm your personal AI financial tutor. I'm here to help you understand any financial concept, answer your questions, and guide you on your journey to financial literacy. What would you like to learn about today?`,
-      isUser: false,
-      timestamp: new Date(),
-      type: 'text'
-    }
-  ]);
+  const { 
+    messages, 
+    loading: messagesLoading, 
+    error: messagesError,
+    addMessage, 
+    clearMessages 
+  } = useChatMessages();
+  
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isVideoMode, setIsVideoMode] = useState(false);
@@ -76,30 +70,31 @@ export default function AITutor() {
     }, 100);
   };
 
+  // Add welcome message if no messages exist
+  useEffect(() => {
+    if (!messagesLoading && messages.length === 0 && user) {
+      const welcomeMessage = `Hi ${user.name?.split(' ')[0] || 'there'}! 👋 I'm your personal AI financial tutor. I'm here to help you understand any financial concept, answer your questions, and guide you on your journey to financial literacy. What would you like to learn about today?`;
+      addMessage('ai', welcomeMessage);
+    }
+  }, [messagesLoading, messages.length, user, addMessage]);
+
   const handleSendMessage = async (text: string = inputText) => {
     if (!text.trim()) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: text.trim(),
-      isUser: true,
-      timestamp: new Date(),
-      type: 'text'
-    };
-
-    setMessages(prev => [...prev, userMessage]);
+    // Add user message to database
+    await addMessage('user', text.trim());
     setInputText('');
     setIsTyping(true);
 
     // Simulate AI response (In production, this would call Tavus API)
-    setTimeout(() => {
+    setTimeout(async () => {
       const aiResponse = generateAIResponse(text.trim());
-      setMessages(prev => [...prev, aiResponse]);
+      await addMessage('ai', aiResponse);
       setIsTyping(false);
     }, 1500);
   };
 
-  const generateAIResponse = (userInput: string): Message => {
+  const generateAIResponse = (userInput: string): string => {
     // This is a mock response. In production, this would integrate with Tavus API
     const responses = {
       credit: "Great question about credit! Building credit is like building trust with lenders. Start with a secured credit card, make small purchases, and always pay on time. Your credit score ranges from 300-850, and payment history makes up 35% of your score. Would you like me to explain the factors that affect your credit score?",
@@ -122,13 +117,7 @@ export default function AITutor() {
       responseText = responses.budget;
     }
 
-    return {
-      id: Date.now().toString(),
-      text: responseText,
-      isUser: false,
-      timestamp: new Date(),
-      type: Math.random() > 0.7 ? 'video' : 'text' // 30% chance of video response
-    };
+    return responseText;
   };
 
   const handleVideoToggle = () => {
@@ -151,8 +140,30 @@ export default function AITutor() {
     setIsMicEnabled(!isMicEnabled);
   };
 
-  const renderMessage = (message: Message) => {
-    const isUser = message.isUser;
+  const handleClearChat = () => {
+    Alert.alert(
+      'Clear Chat History',
+      'Are you sure you want to clear all chat messages? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Clear', 
+          style: 'destructive',
+          onPress: async () => {
+            const success = await clearMessages();
+            if (success) {
+              // Add welcome message back
+              const welcomeMessage = `Hi ${user?.name?.split(' ')[0] || 'there'}! 👋 I'm your personal AI financial tutor. I'm here to help you understand any financial concept, answer your questions, and guide you on your journey to financial literacy. What would you like to learn about today?`;
+              await addMessage('ai', welcomeMessage);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const renderMessage = (message: ChatMessage) => {
+    const isUser = message.type === 'user';
     
     return (
       <View key={message.id} style={[styles.messageContainer, isUser && styles.userMessageContainer]}>
@@ -168,7 +179,7 @@ export default function AITutor() {
         )}
         
         <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
-          {message.type === 'video' && !isUser && (
+          {Math.random() > 0.7 && !isUser && (
             <View style={styles.videoContainer}>
               <View style={styles.videoPlaceholder}>
                 <Bot size={32} color="#10B981" />
@@ -203,11 +214,11 @@ export default function AITutor() {
           )}
           
           <Text style={[styles.messageText, isUser && styles.userMessageText]}>
-            {message.text}
+            {message.note}
           </Text>
           
           <Text style={[styles.timestamp, isUser && styles.userTimestamp]}>
-            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
         
@@ -223,6 +234,14 @@ export default function AITutor() {
       </View>
     );
   };
+
+  if (messagesLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading chat history...</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView 
@@ -256,6 +275,13 @@ export default function AITutor() {
                 <VideoOff size={20} color="rgba(255,255,255,0.7)" />
               )}
             </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.headerButton}
+              onPress={handleClearChat}
+            >
+              <Trash2 size={20} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>
@@ -267,6 +293,12 @@ export default function AITutor() {
         contentContainerStyle={styles.messagesContent}
         showsVerticalScrollIndicator={false}
       >
+        {messagesError && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Error loading messages: {messagesError}</Text>
+          </View>
+        )}
+
         {messages.map(renderMessage)}
         
         {isTyping && (
@@ -290,7 +322,7 @@ export default function AITutor() {
         )}
 
         {/* Quick Suggestions */}
-        {messages.length === 1 && (
+        {messages.length <= 1 && (
           <View style={styles.suggestionsContainer}>
             <Text style={styles.suggestionsTitle}>Quick Questions:</Text>
             {quickSuggestions.map((suggestion, index) => (
@@ -353,6 +385,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
   header: {
     paddingTop: 60,
     paddingBottom: 20,
@@ -408,6 +451,19 @@ const styles = StyleSheet.create({
   messagesContent: {
     padding: 20,
     paddingBottom: 100,
+  },
+  errorContainer: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#DC2626',
   },
   messageContainer: {
     flexDirection: 'row',

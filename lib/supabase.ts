@@ -59,9 +59,8 @@ export type Database = {
           onboarding_completed: boolean;
           created_at: string;
           updated_at: string;
-          // ADDED THESE NEW COLUMNS
-          goal?: string; // Add goal column
-          knowledge_level?: string; // Add knowledge_level column
+          goal?: string;
+          knowledge_level?: string;
         };
         Insert: {
           id: string;
@@ -79,9 +78,8 @@ export type Database = {
           onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;
-          // ADDED THESE NEW COLUMNS
-          goal?: string; // Add goal column
-          knowledge_level?: string; // Add knowledge_level column
+          goal?: string;
+          knowledge_level?: string;
         };
         Update: {
           id?: string;
@@ -99,9 +97,34 @@ export type Database = {
           onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;
-          // ADDED THESE NEW COLUMNS
-          goal?: string; // Add goal column
-          knowledge_level?: string; // Add knowledge_level column
+          goal?: string;
+          knowledge_level?: string;
+        };
+      };
+      chat_messages: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: 'user' | 'ai';
+          amount: number;
+          note: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: 'user' | 'ai';
+          amount?: number;
+          note: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          type?: 'user' | 'ai';
+          amount?: number;
+          note?: string;
+          created_at?: string;
         };
       };
     };

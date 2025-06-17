@@ -68,3 +68,12 @@ export interface GlossaryTerm {
   category: string;
   relatedTerms: string[];
 }
+
+export interface ChatMessage {
+  id: string;
+  user_id: string;
+  type: 'user' | 'ai';
+  amount: number;
+  note: string;
+  created_at: string;
+}
