@@ -17,15 +17,8 @@ import {
   Send,
   Mic,
   MicOff,
-  Video,
-  VideoOff,
   Bot,
   Sparkles,
-  MessageCircle,
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
   Trash2,
   CircleAlert as AlertCircle
 } from 'lucide-react-native';
@@ -64,10 +57,7 @@ export default function AITutor() {
   const [messages, setMessages] = useState<LocalChatMessage[]>([]); // Local state for messages
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [isVideoMode, setIsVideoMode] = useState(false);
   const [isMicEnabled, setIsMicEnabled] = useState(false);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Sync Supabase messages with local state on initial load and refetch
@@ -164,16 +154,6 @@ export default function AITutor() {
     }
   };
 
-  const handleVideoToggle = () => {
-    if (Platform.OS === 'web') {
-      Alert.alert(
-        'Tavus Integration Required',
-        'Video tutoring requires Tavus integration. In production, this would:\n\n• Generate personalized video responses\n• Use your AI tutor avatar\n• Provide interactive video conversations\n\nTavus enables realistic AI video conversations with lip-sync and natural expressions.'
-      );
-    }
-    setIsVideoMode(!isVideoMode);
-  };
-
   const handleMicToggle = () => {
     if (Platform.OS === 'web') {
       Alert.alert(
@@ -232,41 +212,6 @@ export default function AITutor() {
         )}
 
         <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
-          {/* Show video placeholder for some AI responses */}
-          {Math.random() > 0.8 && !isUser && (
-            <View style={styles.videoContainer}>
-              <View style={styles.videoPlaceholder}>
-                <Bot size={32} color="#10B981" />
-                <Text style={styles.videoText}>AI Tutor Video Response</Text>
-                <Text style={styles.videoSubtext}>Powered by Tavus</Text>
-              </View>
-
-              <View style={styles.videoControls}>
-                <TouchableOpacity
-                  style={styles.videoControlButton}
-                  onPress={() => setIsVideoPlaying(!isVideoPlaying)}
-                >
-                  {isVideoPlaying ? (
-                    <Pause size={16} color="#FFF" />
-                  ) : (
-                    <Play size={16} color="#FFF" />
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.videoControlButton}
-                  onPress={() => setIsMuted(!isMuted)}
-                >
-                  {isMuted ? (
-                    <VolumeX size={16} color="#FFF" />
-                  ) : (
-                    <Volume2 size={16} color="#FFF" />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
           <Text style={[styles.messageText, isUser && styles.userMessageText]}>
             {message.content} {/* Changed from message.note */}
           </Text>
@@ -322,17 +267,6 @@ export default function AITutor() {
           </View>
 
           <View style={styles.headerControls}>
-            <TouchableOpacity
-              style={[styles.headerButton, isVideoMode && styles.activeHeaderButton]}
-              onPress={handleVideoToggle}
-            >
-              {isVideoMode ? (
-                <Video size={20} color="#FFF" />
-              ) : (
-                <VideoOff size={20} color="rgba(255,255,255,0.7)" />
-              )}
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.headerButton}
               onPress={handleClearChat}
@@ -512,9 +446,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activeHeaderButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
   messagesContainer: {
     flex: 1,
   },
@@ -592,40 +523,6 @@ const styles = StyleSheet.create({
   userBubble: {
     backgroundColor: '#10B981',
     borderBottomRightRadius: 4,
-  },
-  videoContainer: {
-    marginBottom: 8,
-  },
-  videoPlaceholder: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  videoText: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#374151',
-    marginTop: 8,
-  },
-  videoSubtext: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  videoControls: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  videoControlButton: {
-    backgroundColor: '#10B981',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   messageText: {
     fontSize: 15,
