@@ -1,22 +1,44 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  StyleSheet, 
-  TouchableOpacity, 
-  TextInput, 
-  KeyboardAvoidingView, 
+import React, { useState, useRef, useEffect, useCallback } from 'react'; // Added useCallback
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  KeyboardAvoidingView,
   Platform,
   Dimensions,
   Alert,
   ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Send, Mic, MicOff, Video, VideoOff, Bot, Sparkles, MessageCircle, Play, Pause, Volume2, VolumeX, Trash2, CircleAlert as AlertCircle } from 'lucide-react-native';
+import {
+  Send,
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  Bot,
+  Sparkles,
+  MessageCircle,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Trash2,
+  CircleAlert as AlertCircle
+} from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
 import { useChatMessages } from '@/hooks/useChatMessages';
-import { ChatMessage } from '@/types';
+import { ChatMessage as DbChatMessage } from '@/lib/supabase'; // Import the type from supabase.ts
+
+// Define a local type for messages, including a potential temporary ID
+// This will be used for messages not yet committed to Supabase
+interface LocalChatMessage extends DbChatMessage {
+  id: string; // Ensure id is always present for key prop
+  isTemporary?: boolean; // Optional: to mark messages not yet fetched from DB
+}
 
 const quickSuggestions = [
   "What's the difference between a 401k and IRA?",
@@ -31,14 +53,15 @@ const { width: screenWidth } = Dimensions.get('window');
 
 export default function AITutor() {
   const { user } = useUserData();
-  const { 
-    messages, 
-    loading: messagesLoading, 
+  const {
+    messages: dbMessages, // Renamed to avoid conflict
+    loading: messagesLoading,
     error: messagesError,
-    addMessage, 
-    clearMessages 
+    callChatAPI, // This is the new function to use
+    refetch: refetchMessages // To refetch historical messages if needed
   } = useChatMessages();
-  
+
+  const [messages, setMessages] = useState<LocalChatMessage[]>([]); // Local state for messages
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isVideoMode, setIsVideoMode] = useState(false);
@@ -47,9 +70,16 @@ export default function AITutor() {
   const [isMuted, setIsMuted] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
+  // Sync Supabase messages with local state on initial load and refetch
+  useEffect(() => {
+    if (dbMessages) {
+      setMessages(dbMessages as LocalChatMessage[]);
+    }
+  }, [dbMessages]);
+
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages]); // Scroll when local messages change
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -59,25 +89,78 @@ export default function AITutor() {
 
   // Add welcome message if no messages exist
   useEffect(() => {
-    if (!messagesLoading && messages.length === 0 && user) {
-      const welcomeMessage = `Hi ${user.name?.split(' ')[0] || 'there'}! 👋 I'm your personal AI financial tutor. I'm here to help you understand any financial concept, answer your questions, and guide you on your journey to financial literacy. What would you like to learn about today?`;
-      addMessage('ai', welcomeMessage);
+    // Only add welcome message if dbMessages have loaded and are empty
+    // and no temporary messages are present (from a clear chat)
+    if (!messagesLoading && dbMessages.length === 0 && user && messages.length === 0) {
+      const welcomeMessageContent = `Hi ${user.name?.split(' ')[0] || 'there'}! 👋 I'm your personal AI financial tutor. I'm here to help you understand any financial concept, answer your questions, and guide you on your journey to financial literacy. What would you like to learn about today?`;
+      
+      // Add welcome message directly to local state
+      setMessages([{
+        id: `temp-${Date.now()}-ai-welcome`, // Use a temporary ID
+        user_id: user.id,
+        content: welcomeMessageContent,
+        message_type: 'ai',
+        created_at: new Date().toISOString(),
+        isTemporary: true, // Mark it as temporary
+      }]);
     }
-  }, [messagesLoading, messages.length, user, addMessage]);
+  }, [messagesLoading, dbMessages.length, user, messages.length]);
+
 
   const handleSendMessage = async (text: string = inputText) => {
-    if (!text.trim() || isTyping) return;
+    if (!text.trim() || isTyping || !user) return; // Ensure user is available
 
     setInputText('');
     setIsTyping(true);
 
+    const userMessage: LocalChatMessage = {
+      id: `temp-${Date.now()}-user`, // Temporary ID for immediate display
+      user_id: user.id,
+      content: text.trim(),
+      message_type: 'human', // Using 'human' as per your schema
+      created_at: new Date().toISOString(),
+      isTemporary: true,
+    };
+
+    // Optimistically add user message to local state
+    setMessages((prev) => [...prev, userMessage]);
+    scrollToBottom();
+
     try {
-      // Add user message - this will automatically trigger the API call and AI response
-      await addMessage('user', text.trim());
-    } catch (error) {
+      // Call the external AI API
+      const aiResponseContent = await callChatAPI(text.trim(), user.id);
+
+      const aiMessage: LocalChatMessage = {
+        id: `temp-${Date.now()}-ai`, // Temporary ID for AI response
+        user_id: user.id,
+        content: aiResponseContent,
+        message_type: 'ai',
+        created_at: new Date().toISOString(),
+        isTemporary: true,
+      };
+
+      // Add AI response to local state
+      setMessages((prev) => [...prev, aiMessage]);
+
+      // Optional: Refetch messages from DB if your external API updates the DB
+      // immediately after sending the response, to get the permanent IDs.
+      // If not, these temporary messages will just exist client-side until refresh.
+      // refetchMessages();
+
+    } catch (error: any) {
       console.error('Error sending message:', error);
+      const errorMessage: LocalChatMessage = {
+        id: `temp-${Date.now()}-error`,
+        user_id: user.id,
+        content: `I'm having trouble connecting to my services right now. ${error.message || 'Please try again.'}`,
+        message_type: 'ai',
+        created_at: new Date().toISOString(),
+        isTemporary: true,
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
+      scrollToBottom();
     }
   };
 
@@ -101,31 +184,40 @@ export default function AITutor() {
     setIsMicEnabled(!isMicEnabled);
   };
 
-  const handleClearChat = () => {
+  const handleClearChat = useCallback(() => {
     Alert.alert(
       'Clear Chat History',
-      'Are you sure you want to clear all chat messages? This action cannot be undone.',
+      'Are you sure you want to clear all chat messages? This action cannot be undone locally. You will see historical messages again on next load if they exist in the database.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Clear', 
+        {
+          text: 'Clear',
           style: 'destructive',
-          onPress: async () => {
-            const success = await clearMessages();
-            if (success) {
-              // Add welcome message back
-              const welcomeMessage = `Hi ${user?.name?.split(' ')[0] || 'there'}! 👋 I'm your personal AI financial tutor. I'm here to help you understand any financial concept, answer your questions, and guide you on your journey to financial literacy. What would you like to learn about today?`;
-              await addMessage('ai', welcomeMessage);
-            }
+          onPress: () => {
+            setMessages([]); // Clear local messages
+            // Re-add the welcome message immediately after clearing
+            const welcomeMessageContent = `Hi ${user?.name?.split(' ')[0] || 'there'}! 👋 I'm your personal AI financial tutor. I'm here to help you understand any financial concept, answer your questions, and guide you on your journey to financial literacy. What would you like to learn about today?`;
+            setMessages([{
+              id: `temp-${Date.now()}-ai-welcome-after-clear`,
+              user_id: user?.id || 'anonymous', // Provide a fallback user_id
+              content: welcomeMessageContent,
+              message_type: 'ai',
+              created_at: new Date().toISOString(),
+              isTemporary: true,
+            }]);
+            // If you want to clear the *database* history, you would call an API here
+            // e.g., await api.clearChatHistory(user.id);
           }
         }
       ]
     );
-  };
+  }, [user]); // Depend on user to get name for welcome message
 
-  const renderMessage = (message: ChatMessage) => {
-    const isUser = message.type === 'user';
-    
+  // Use DbChatMessage for the render function argument type, as we expect full properties
+  const renderMessage = (message: LocalChatMessage) => {
+    // Ensure 'message_type' and 'content' are used as per your schema
+    const isUser = message.message_type === 'human';
+
     return (
       <View key={message.id} style={[styles.messageContainer, isUser && styles.userMessageContainer]}>
         {!isUser && (
@@ -138,7 +230,7 @@ export default function AITutor() {
             </LinearGradient>
           </View>
         )}
-        
+
         <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
           {/* Show video placeholder for some AI responses */}
           {Math.random() > 0.8 && !isUser && (
@@ -148,9 +240,9 @@ export default function AITutor() {
                 <Text style={styles.videoText}>AI Tutor Video Response</Text>
                 <Text style={styles.videoSubtext}>Powered by Tavus</Text>
               </View>
-              
+
               <View style={styles.videoControls}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.videoControlButton}
                   onPress={() => setIsVideoPlaying(!isVideoPlaying)}
                 >
@@ -160,8 +252,8 @@ export default function AITutor() {
                     <Play size={16} color="#FFF" />
                   )}
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={styles.videoControlButton}
                   onPress={() => setIsMuted(!isMuted)}
                 >
@@ -174,16 +266,16 @@ export default function AITutor() {
               </View>
             </View>
           )}
-          
+
           <Text style={[styles.messageText, isUser && styles.userMessageText]}>
-            {message.note}
+            {message.content} {/* Changed from message.note */}
           </Text>
-          
+
           <Text style={[styles.timestamp, isUser && styles.userTimestamp]}>
             {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
-        
+
         {isUser && (
           <View style={styles.userAvatarContainer}>
             <View style={styles.userAvatar}>
@@ -207,8 +299,8 @@ export default function AITutor() {
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       {/* Header */}
@@ -228,9 +320,9 @@ export default function AITutor() {
               </Text>
             </View>
           </View>
-          
+
           <View style={styles.headerControls}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.headerButton, isVideoMode && styles.activeHeaderButton]}
               onPress={handleVideoToggle}
             >
@@ -240,8 +332,8 @@ export default function AITutor() {
                 <VideoOff size={20} color="rgba(255,255,255,0.7)" />
               )}
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.headerButton}
               onPress={handleClearChat}
             >
@@ -252,7 +344,7 @@ export default function AITutor() {
       </LinearGradient>
 
       {/* Messages */}
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
@@ -268,7 +360,7 @@ export default function AITutor() {
         )}
 
         {messages.map(renderMessage)}
-        
+
         {isTyping && (
           <View style={styles.typingContainer}>
             <View style={styles.avatarContainer}>
@@ -289,7 +381,7 @@ export default function AITutor() {
         )}
 
         {/* Quick Suggestions */}
-        {messages.length <= 1 && (
+        {messages.length <= 1 && ( // Only show if few messages, including the welcome message
           <View style={styles.suggestionsContainer}>
             <Text style={styles.suggestionsTitle}>Quick Questions:</Text>
             {quickSuggestions.map((suggestion, index) => (
@@ -322,9 +414,9 @@ export default function AITutor() {
             blurOnSubmit={false}
             editable={!isTyping}
           />
-          
+
           <View style={styles.inputControls}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.controlButton, isMicEnabled && styles.activeControlButton]}
               onPress={handleMicToggle}
               disabled={isTyping}
@@ -335,10 +427,10 @@ export default function AITutor() {
                 <MicOff size={20} color="#6B7280" />
               )}
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[
-                styles.sendButton, 
+                styles.sendButton,
                 (!inputText.trim() || isTyping) && styles.disabledSendButton
               ]}
               onPress={() => handleSendMessage()}

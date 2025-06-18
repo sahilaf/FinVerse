@@ -101,7 +101,7 @@ export type Database = {
           knowledge_level?: string;
         };
       };
-      chat_messages: {
+      chat_history: {
         Row: {
           id: string;
           user_id: string;
