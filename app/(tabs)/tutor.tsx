@@ -9,7 +9,8 @@ import {
   KeyboardAvoidingView, 
   Platform,
   Dimensions,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
@@ -25,7 +26,8 @@ import {
   Pause,
   Volume2,
   VolumeX,
-  Trash2
+  Trash2,
+  AlertCircle
 } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
 import { useChatMessages } from '@/hooks/useChatMessages';
@@ -79,45 +81,19 @@ export default function AITutor() {
   }, [messagesLoading, messages.length, user, addMessage]);
 
   const handleSendMessage = async (text: string = inputText) => {
-    if (!text.trim()) return;
+    if (!text.trim() || isTyping) return;
 
-    // Add user message to database
-    await addMessage('user', text.trim());
     setInputText('');
     setIsTyping(true);
 
-    // Simulate AI response (In production, this would call Tavus API)
-    setTimeout(async () => {
-      const aiResponse = generateAIResponse(text.trim());
-      await addMessage('ai', aiResponse);
+    try {
+      // Add user message - this will automatically trigger the API call and AI response
+      await addMessage('user', text.trim());
+    } catch (error) {
+      console.error('Error sending message:', error);
+    } finally {
       setIsTyping(false);
-    }, 1500);
-  };
-
-  const generateAIResponse = (userInput: string): string => {
-    // This is a mock response. In production, this would integrate with Tavus API
-    const responses = {
-      credit: "Great question about credit! Building credit is like building trust with lenders. Start with a secured credit card, make small purchases, and always pay on time. Your credit score ranges from 300-850, and payment history makes up 35% of your score. Would you like me to explain the factors that affect your credit score?",
-      compound: "Compound interest is the magic of money growing on money! Think of it like a snowball rolling down a hill - it starts small but gets bigger and bigger. When you earn interest on your initial investment AND on the interest you've already earned, that's compound interest. Einstein called it the 8th wonder of the world!",
-      emergency: "An emergency fund is your financial safety net! Aim to save 3-6 months of living expenses. Start small - even $25 per month adds up. Keep it in a high-yield savings account that's easily accessible but separate from your checking account. This fund is for true emergencies like job loss or medical bills, not vacations!",
-      budget: "The 50/30/20 rule is a simple budgeting framework! Spend 50% of your after-tax income on needs (rent, groceries, utilities), 30% on wants (entertainment, dining out), and 20% on savings and debt repayment. It's a great starting point, but adjust based on your personal situation!",
-      default: "That's an excellent question! Financial literacy is a journey, and I'm here to help you every step of the way. Could you be more specific about what aspect you'd like to explore? I can explain concepts, help with calculations, or provide personalized advice based on your goals."
-    };
-
-    let responseText = responses.default;
-    const input = userInput.toLowerCase();
-
-    if (input.includes('credit') || input.includes('score')) {
-      responseText = responses.credit;
-    } else if (input.includes('compound') || input.includes('interest')) {
-      responseText = responses.compound;
-    } else if (input.includes('emergency') || input.includes('fund')) {
-      responseText = responses.emergency;
-    } else if (input.includes('50') || input.includes('budget') || input.includes('rule')) {
-      responseText = responses.budget;
     }
-
-    return responseText;
   };
 
   const handleVideoToggle = () => {
@@ -179,7 +155,8 @@ export default function AITutor() {
         )}
         
         <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
-          {Math.random() > 0.7 && !isUser && (
+          {/* Show video placeholder for some AI responses */}
+          {Math.random() > 0.8 && !isUser && (
             <View style={styles.videoContainer}>
               <View style={styles.videoPlaceholder}>
                 <Bot size={32} color="#10B981" />
@@ -238,6 +215,7 @@ export default function AITutor() {
   if (messagesLoading) {
     return (
       <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10B981" />
         <Text style={styles.loadingText}>Loading chat history...</Text>
       </View>
     );
@@ -260,7 +238,9 @@ export default function AITutor() {
             </View>
             <View>
               <Text style={styles.headerTitle}>AI Financial Tutor</Text>
-              <Text style={styles.headerSubtitle}>Powered by Tavus • Always here to help</Text>
+              <Text style={styles.headerSubtitle}>
+                {isTyping ? 'Thinking...' : 'Always here to help'}
+              </Text>
             </View>
           </View>
           
@@ -295,7 +275,10 @@ export default function AITutor() {
       >
         {messagesError && (
           <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Error loading messages: {messagesError}</Text>
+            <AlertCircle size={20} color="#DC2626" />
+            <Text style={styles.errorText}>
+              Connection issue: {messagesError}
+            </Text>
           </View>
         )}
 
@@ -313,9 +296,8 @@ export default function AITutor() {
             </View>
             <View style={styles.typingBubble}>
               <View style={styles.typingIndicator}>
-                <View style={[styles.typingDot, { animationDelay: '0ms' }]} />
-                <View style={[styles.typingDot, { animationDelay: '150ms' }]} />
-                <View style={[styles.typingDot, { animationDelay: '300ms' }]} />
+                <ActivityIndicator size="small" color="#10B981" />
+                <Text style={styles.typingText}>AI is thinking...</Text>
               </View>
             </View>
           </View>
@@ -330,6 +312,7 @@ export default function AITutor() {
                 key={index}
                 style={styles.suggestionChip}
                 onPress={() => handleSendMessage(suggestion)}
+                disabled={isTyping}
               >
                 <Sparkles size={14} color="#10B981" />
                 <Text style={styles.suggestionText}>{suggestion}</Text>
@@ -352,12 +335,14 @@ export default function AITutor() {
             maxLength={500}
             onSubmitEditing={() => handleSendMessage()}
             blurOnSubmit={false}
+            editable={!isTyping}
           />
           
           <View style={styles.inputControls}>
             <TouchableOpacity 
               style={[styles.controlButton, isMicEnabled && styles.activeControlButton]}
               onPress={handleMicToggle}
+              disabled={isTyping}
             >
               {isMicEnabled ? (
                 <Mic size={20} color="#10B981" />
@@ -367,11 +352,18 @@ export default function AITutor() {
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.sendButton, !inputText.trim() && styles.disabledSendButton]}
+              style={[
+                styles.sendButton, 
+                (!inputText.trim() || isTyping) && styles.disabledSendButton
+              ]}
               onPress={() => handleSendMessage()}
-              disabled={!inputText.trim()}
+              disabled={!inputText.trim() || isTyping}
             >
-              <Send size={20} color="#FFF" />
+              {isTyping ? (
+                <ActivityIndicator size={20} color="#FFF" />
+              ) : (
+                <Send size={20} color="#FFF" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -390,6 +382,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F9FAFB',
+    gap: 16,
   },
   loadingText: {
     fontSize: 16,
@@ -459,11 +452,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   errorText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#DC2626',
+    flex: 1,
   },
   messageContainer: {
     flexDirection: 'row',
@@ -589,14 +586,13 @@ const styles = StyleSheet.create({
   },
   typingIndicator: {
     flexDirection: 'row',
-    gap: 4,
+    alignItems: 'center',
+    gap: 8,
   },
-  typingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
-    opacity: 0.4,
+  typingText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
   },
   suggestionsContainer: {
     marginTop: 20,

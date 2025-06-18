@@ -40,7 +40,33 @@ export function useChatMessages() {
     }
   };
 
-  // Add a new message
+  // Call the external chat API
+  const callChatAPI = async (message: string, userId: string): Promise<string> => {
+    try {
+      const response = await fetch('https://finverseagent.onrender.com/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          message: message,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.response || 'Sorry, I couldn\'t process your request right now.';
+    } catch (error) {
+      console.error('Chat API error:', error);
+      throw new Error('Failed to get response from AI tutor. Please try again.');
+    }
+  };
+
+  // Add a new message and get AI response
   const addMessage = async (type: 'user' | 'ai', note: string, amount: number = 0) => {
     if (!user) {
       setError('User not authenticated');
@@ -48,7 +74,8 @@ export function useChatMessages() {
     }
 
     try {
-      const { data, error } = await supabase
+      // Add user message to database
+      const { data: userMessage, error: userError } = await supabase
         .from('chat_messages')
         .insert({
           user_id: user.id,
@@ -59,16 +86,64 @@ export function useChatMessages() {
         .select()
         .single();
 
-      if (error) {
-        console.error('Error adding message:', error);
-        setError(error.message);
+      if (userError) {
+        console.error('Error adding user message:', userError);
+        setError(userError.message);
         return null;
       }
 
-      // Add the new message to local state
-      setMessages(prev => [...prev, data]);
+      // Add the user message to local state immediately
+      setMessages(prev => [...prev, userMessage]);
+
+      // If this is a user message, get AI response
+      if (type === 'user') {
+        try {
+          // Call the external chat API
+          const aiResponse = await callChatAPI(note, user.id);
+
+          // Add AI response to database
+          const { data: aiMessage, error: aiError } = await supabase
+            .from('chat_messages')
+            .insert({
+              user_id: user.id,
+              type: 'ai',
+              note: aiResponse,
+              amount: 0,
+            })
+            .select()
+            .single();
+
+          if (aiError) {
+            console.error('Error adding AI message:', aiError);
+            setError(aiError.message);
+          } else {
+            // Add AI message to local state
+            setMessages(prev => [...prev, aiMessage]);
+          }
+        } catch (apiError: any) {
+          console.error('API call failed:', apiError);
+          
+          // Add error message as AI response
+          const errorMessage = `I'm having trouble connecting to my services right now. ${apiError.message}`;
+          const { data: errorAiMessage } = await supabase
+            .from('chat_messages')
+            .insert({
+              user_id: user.id,
+              type: 'ai',
+              note: errorMessage,
+              amount: 0,
+            })
+            .select()
+            .single();
+
+          if (errorAiMessage) {
+            setMessages(prev => [...prev, errorAiMessage]);
+          }
+        }
+      }
+
       setError(null);
-      return data;
+      return userMessage;
     } catch (err: any) {
       console.error('Unexpected error adding message:', err);
       setError(err.message);
