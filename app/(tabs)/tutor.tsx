@@ -13,22 +13,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { 
-  Send, 
-  Mic, 
-  MicOff, 
-  Video, 
-  VideoOff, 
-  Bot, 
-  Sparkles, 
-  MessageCircle,
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  Trash2,
-  AlertCircle
-} from 'lucide-react-native';
+import { Send, Mic, MicOff, Video, VideoOff, Bot, Sparkles, MessageCircle, Play, Pause, Volume2, VolumeX, Trash2, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
 import { useChatMessages } from '@/hooks/useChatMessages';
 import { ChatMessage } from '@/types';
