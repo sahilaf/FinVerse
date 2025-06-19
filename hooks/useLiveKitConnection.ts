@@ -39,7 +39,7 @@ export function useLiveKitConnection() {
           ...prev,
           isConnected: true,
           isConnecting: false,
-          roomUrl: ${config.serverUrl}/room-${Date.now()}
+          roomUrl: ${config.serverUrl}/room-${Date.now()},
           token: simulated-token-${config.userId},
         }));
         
