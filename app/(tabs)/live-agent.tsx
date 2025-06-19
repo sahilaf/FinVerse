@@ -269,7 +269,7 @@ export default function LiveAgent() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <ImageBackground
         source={{
           uri: 'https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=1200',
@@ -359,7 +359,7 @@ export default function LiveAgent() {
           </LinearGradient>
         </BlurView>
       </ImageBackground>
-    </View>
+    </ScrollView>
   );
 }
 
