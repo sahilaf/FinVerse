@@ -40,7 +40,7 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 // Configuration for your LiveKit server
 const LIVEKIT_CONFIG = {
-  serverUrl: process.env.EXPO_PUBLIC_LIVEKIT_URL || 'https://finverse-kev4ntpv.livekit.cloud',
+  serverUrl: process.env.EXPO_PUBLIC_LIVEKIT_URL || 'wss://finverse-kev4ntpv.livekit.cloud',
   apiKey: process.env.EXPO_PUBLIC_LIVEKIT_API_KEY,
 };
 
