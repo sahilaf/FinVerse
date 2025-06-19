@@ -277,7 +277,6 @@ export default function LiveAgent() {
         style={styles.backgroundImage}
         resizeMode="cover"
       >
-        <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill}>
           <LinearGradient
             colors={['rgba(16, 185, 129, 0.1)', 'rgba(6, 95, 70, 0.3)']}
             style={styles.overlay}
@@ -357,7 +356,6 @@ export default function LiveAgent() {
               </Text>
             </View>
           </LinearGradient>
-        </BlurView>
       </ImageBackground>
     </ScrollView>
   );
