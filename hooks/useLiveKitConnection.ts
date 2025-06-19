@@ -10,8 +10,7 @@ interface LiveKitConnectionState {
 }
 
 interface ConnectionConfig {
-  apiUrl: string;      // Ex: https://api.finverse.com
-  liveKitUrl: string;  // Ex: wss://finverse-kev4ntpv.livekit.cloud
+  serverUrl: string;
   apiKey?: string;
   userId: string;
   userName: string;
@@ -30,46 +29,51 @@ export function useLiveKitConnection() {
     setState(prev => ({ ...prev, isConnecting: true, error: null }));
 
     try {
+      // For web platform, we'll simulate the connection
+      // In a real implementation, you'd call your LiveKit server to get room details
       if (Platform.OS === 'web') {
-        // Simulate connection on web
+        // Simulate API call to your LiveKit server
         await new Promise(resolve => setTimeout(resolve, 1500));
+        
         setState(prev => ({
           ...prev,
           isConnected: true,
           isConnecting: false,
-          roomUrl: config.liveKitUrl,
-          token: `simulated-token-${config.userId}`,
+          roomUrl: ${config.serverUrl}/room-${Date.now()},
+          token: simulated-token-${config.userId},
         }));
+        
         return;
       }
 
-      // Native: Fetch token from your API backend
-      const response = await fetch(`${config.apiUrl}/api/create-room`, {
+      // For native platforms, make actual API call to your LiveKit server
+      const response = await fetch(${config.serverUrl}/api/create-room, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(config.apiKey && { 'Authorization': `Bearer ${config.apiKey}` }),
+          ...(config.apiKey && { 'Authorization': Bearer ${config.apiKey} }),
         },
         body: JSON.stringify({
           userId: config.userId,
           userName: config.userName,
-          roomName: `financial-session-${Date.now()}`,
+          roomName: financial-session-${Date.now()},
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to create room: ${response.statusText}`);
+        throw new Error(Failed to create room: ${response.statusText});
       }
 
-      const data = await response.json(); // Expected: { token: string }
-
+      const data = await response.json();
+      
       setState(prev => ({
         ...prev,
         isConnected: true,
         isConnecting: false,
-        roomUrl: config.liveKitUrl,
+        roomUrl: data.roomUrl,
         token: data.token,
       }));
+
     } catch (error: any) {
       setState(prev => ({
         ...prev,
