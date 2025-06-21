@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, DollarSign, TrendingUp, TrendingDown, ChartPie as PieChart, Target, Edit3, Trash2 } from 'lucide-react-native';
+import { Plus, DollarSign, TrendingUp, TrendingDown, ChartPie as PieChart, Target, CreditCard as Edit3, Trash2 } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
 import { useBudgetData, FinanceItem } from '@/hooks/useBudgetData';
 
