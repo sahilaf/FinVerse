@@ -13,29 +13,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { WebView } from 'react-native-webview';
-import {
-  Video,
-  VideoOff,
-  Mic,
-  MicOff,
-  Phone,
-  PhoneOff,
-  Settings,
-  Maximize2,
-  Minimize2,
-  Volume2,
-  VolumeX,
-  Users,
-  Clock,
-  Sparkles,
-  Bot,
-  Zap,
-  Shield,
-  MessageCircle,
-  Star,
-  AlertCircle,
-  RefreshCw,
-} from 'lucide-react-native';
+import { Video, VideoOff, Mic, MicOff, Phone, PhoneOff, Settings, Maximize2, Minimize2, Volume2, VolumeX, Users, Clock, Sparkles, Bot, Zap, Shield, MessageCircle, Star, CircleAlert as AlertCircle, RefreshCw } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
 import { useTavusConversation } from '@/hooks/useTavusConversation';
 
