@@ -105,28 +105,57 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          type: 'user' | 'ai';
-          amount: number;
-          note: string;
+          content: string;
+          message_type: 'human' | 'ai';
           created_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
-          type: 'user' | 'ai';
-          amount?: number;
-          note: string;
+          content: string;
+          message_type: 'human' | 'ai';
           created_at?: string;
         };
         Update: {
           id?: string;
           user_id?: string;
-          type?: 'user' | 'ai';
+          content?: string;
+          message_type?: 'human' | 'ai';
+          created_at?: string;
+        };
+      };
+      finance: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: 'income' | 'expense' | 'savings';
+          amount: number;
+          category: string | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: 'income' | 'expense' | 'savings';
+          amount: number;
+          category?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          type?: 'income' | 'expense' | 'savings';
           amount?: number;
-          note?: string;
+          category?: string | null;
+          note?: string | null;
           created_at?: string;
         };
       };
     };
   };
 };
+
+// Export ChatMessage type for backward compatibility
+export type ChatMessage = Database['public']['Tables']['chat_history']['Row'];

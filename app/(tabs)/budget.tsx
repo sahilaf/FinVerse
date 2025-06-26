@@ -1,89 +1,150 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, DollarSign, TrendingUp, TrendingDown, ChartPie as PieChart, Target } from 'lucide-react-native';
+import { Plus, DollarSign, TrendingUp, TrendingDown, ChartPie as PieChart, Target, CreditCard as Edit3, Trash2 } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
-import { BudgetItem } from '@/types';
-
-const mockBudgetItems: BudgetItem[] = [
-  { id: '1', name: 'Salary', amount: 3500, category: 'Income', type: 'income', isRecurring: true },
-  { id: '2', name: 'Rent', amount: 1200, category: 'Housing', type: 'expense', isRecurring: true },
-  { id: '3', name: 'Groceries', amount: 400, category: 'Food', type: 'expense', isRecurring: true },
-  { id: '4', name: 'Transportation', amount: 150, category: 'Transport', type: 'expense', isRecurring: true },
-  { id: '5', name: 'Entertainment', amount: 200, category: 'Lifestyle', type: 'expense', isRecurring: true },
-];
+import { useBudgetData, FinanceItem } from '@/hooks/useBudgetData';
 
 const categories = {
-  income: ['Salary', 'Freelance', 'Investment', 'Other'],
-  expense: ['Housing', 'Food', 'Transport', 'Healthcare', 'Lifestyle', 'Savings', 'Other']
+  income: ['Salary', 'Freelance', 'Investment', 'Business', 'Other'],
+  expense: ['Housing', 'Food', 'Transport', 'Healthcare', 'Lifestyle', 'Entertainment', 'Other'],
+  savings: ['Emergency Fund', 'Retirement', 'Investment', 'Goal Savings', 'Other']
 };
 
 export default function Budget() {
   const { user } = useUserData();
-  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>(mockBudgetItems);
+  const { 
+    financeItems, 
+    loading, 
+    error, 
+    addFinanceItem, 
+    updateFinanceItem, 
+    deleteFinanceItem, 
+    getBudgetStats,
+    refetch 
+  } = useBudgetData();
+
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingItem, setEditingItem] = useState<FinanceItem | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [newItem, setNewItem] = useState({
-    name: '',
+    type: 'expense' as 'income' | 'expense' | 'savings',
     amount: '',
     category: '',
-    type: 'expense' as 'income' | 'expense',
-    isRecurring: true
+    note: ''
   });
 
-  const totalIncome = budgetItems
-    .filter(item => item.type === 'income')
-    .reduce((sum, item) => sum + item.amount, 0);
+  const budgetStats = getBudgetStats();
 
-  const totalExpenses = budgetItems
-    .filter(item => item.type === 'expense')
-    .reduce((sum, item) => sum + item.amount, 0);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
 
-  const remainingBudget = totalIncome - totalExpenses;
-  const budgetHealthy = remainingBudget >= 0;
+  const resetForm = () => {
+    setNewItem({
+      type: 'expense',
+      amount: '',
+      category: '',
+      note: ''
+    });
+    setShowAddForm(false);
+    setEditingItem(null);
+  };
 
-  // 50/30/20 Rule Calculations
-  const needsTarget = totalIncome * 0.5;
-  const wantsTarget = totalIncome * 0.3;
-  const savingsTarget = totalIncome * 0.2;
-
-  const needsSpent = budgetItems
-    .filter(item => item.type === 'expense' && ['Housing', 'Food', 'Transport', 'Healthcare'].includes(item.category))
-    .reduce((sum, item) => sum + item.amount, 0);
-
-  const wantsSpent = budgetItems
-    .filter(item => item.type === 'expense' && ['Lifestyle', 'Entertainment', 'Other'].includes(item.category))
-    .reduce((sum, item) => sum + item.amount, 0);
-
-  const savingsAmount = budgetItems
-    .filter(item => item.type === 'expense' && item.category === 'Savings')
-    .reduce((sum, item) => sum + item.amount, 0);
-
-  const handleAddItem = () => {
-    if (!newItem.name || !newItem.amount || !newItem.category) {
-      Alert.alert('Error', 'Please fill in all fields');
+  const handleAddItem = async () => {
+    if (!newItem.amount || !newItem.category) {
+      Alert.alert('Error', 'Please fill in amount and category');
       return;
     }
 
-    const item: BudgetItem = {
-      id: Date.now().toString(),
-      name: newItem.name,
-      amount: parseFloat(newItem.amount),
-      category: newItem.category,
-      type: newItem.type,
-      isRecurring: newItem.isRecurring
-    };
+    try {
+      await addFinanceItem({
+        type: newItem.type,
+        amount: parseFloat(newItem.amount),
+        category: newItem.category,
+        note: newItem.note || null
+      });
+      resetForm();
+      Alert.alert('Success', 'Budget item added successfully!');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to add budget item');
+    }
+  };
 
-    setBudgetItems([...budgetItems, item]);
-    setNewItem({ name: '', amount: '', category: '', type: 'expense', isRecurring: true });
-    setShowAddForm(false);
+  const handleUpdateItem = async () => {
+    if (!editingItem || !newItem.amount || !newItem.category) {
+      Alert.alert('Error', 'Please fill in amount and category');
+      return;
+    }
+
+    try {
+      await updateFinanceItem(editingItem.id, {
+        type: newItem.type,
+        amount: parseFloat(newItem.amount),
+        category: newItem.category,
+        note: newItem.note || null
+      });
+      resetForm();
+      Alert.alert('Success', 'Budget item updated successfully!');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update budget item');
+    }
+  };
+
+  const handleDeleteItem = (item: FinanceItem) => {
+    Alert.alert(
+      'Delete Item',
+      `Are you sure you want to delete "${item.note || item.category}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteFinanceItem(item.id);
+              Alert.alert('Success', 'Budget item deleted successfully!');
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to delete budget item');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleEditItem = (item: FinanceItem) => {
+    setEditingItem(item);
+    setNewItem({
+      type: item.type,
+      amount: item.amount.toString(),
+      category: item.category || '',
+      note: item.note || ''
+    });
+    setShowAddForm(true);
   };
 
   const formatCurrency = (amount: number) => {
     return `${user?.currency === 'USD' ? '$' : user?.currency || '$'}${Math.abs(amount).toLocaleString()}`;
   };
 
+  if (loading && financeItems.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading your budget...</Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -91,10 +152,17 @@ export default function Budget() {
           <Text style={styles.subtitle}>Take control of your finances</Text>
         </View>
 
+        {/* Error Display */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Error: {error}</Text>
+          </View>
+        )}
+
         {/* Budget Overview */}
         <View style={styles.content}>
           <LinearGradient
-            colors={budgetHealthy ? ['#10B981', '#059669'] : ['#EF4444', '#DC2626']}
+            colors={budgetStats.budgetHealthy ? ['#10B981', '#059669'] : ['#EF4444', '#DC2626']}
             style={styles.overviewCard}
           >
             <View style={styles.overviewHeader}>
@@ -106,20 +174,20 @@ export default function Budget() {
               <View style={styles.statItem}>
                 <TrendingUp size={20} color="#FFF" />
                 <Text style={styles.statLabel}>Income</Text>
-                <Text style={styles.statValue}>{formatCurrency(totalIncome)}</Text>
+                <Text style={styles.statValue}>{formatCurrency(budgetStats.income)}</Text>
               </View>
               
               <View style={styles.statItem}>
                 <TrendingDown size={20} color="#FFF" />
                 <Text style={styles.statLabel}>Expenses</Text>
-                <Text style={styles.statValue}>{formatCurrency(totalExpenses)}</Text>
+                <Text style={styles.statValue}>{formatCurrency(budgetStats.expenses)}</Text>
               </View>
               
               <View style={styles.statItem}>
                 <Target size={20} color="#FFF" />
                 <Text style={styles.statLabel}>Remaining</Text>
-                <Text style={[styles.statValue, !budgetHealthy && styles.negativeValue]}>
-                  {formatCurrency(remainingBudget)}
+                <Text style={[styles.statValue, !budgetStats.budgetHealthy && styles.negativeValue]}>
+                  {formatCurrency(budgetStats.remaining)}
                 </Text>
               </View>
             </View>
@@ -137,14 +205,17 @@ export default function Budget() {
                 <View style={styles.ruleItemHeader}>
                   <Text style={styles.ruleCategory}>Needs (50%)</Text>
                   <Text style={styles.ruleAmount}>
-                    {formatCurrency(needsSpent)} / {formatCurrency(needsTarget)}
+                    {formatCurrency(budgetStats.needsSpent)} / {formatCurrency(budgetStats.needsTarget)}
                   </Text>
                 </View>
                 <View style={styles.progressBar}>
                   <View 
                     style={[
                       styles.progressFill,
-                      { width: `${Math.min(100, (needsSpent / needsTarget) * 100)}%`, backgroundColor: '#10B981' }
+                      { 
+                        width: `${Math.min(100, (budgetStats.needsSpent / budgetStats.needsTarget) * 100)}%`, 
+                        backgroundColor: '#10B981' 
+                      }
                     ]} 
                   />
                 </View>
@@ -154,14 +225,17 @@ export default function Budget() {
                 <View style={styles.ruleItemHeader}>
                   <Text style={styles.ruleCategory}>Wants (30%)</Text>
                   <Text style={styles.ruleAmount}>
-                    {formatCurrency(wantsSpent)} / {formatCurrency(wantsTarget)}
+                    {formatCurrency(budgetStats.wantsSpent)} / {formatCurrency(budgetStats.wantsTarget)}
                   </Text>
                 </View>
                 <View style={styles.progressBar}>
                   <View 
                     style={[
                       styles.progressFill,
-                      { width: `${Math.min(100, (wantsSpent / wantsTarget) * 100)}%`, backgroundColor: '#F59E0B' }
+                      { 
+                        width: `${Math.min(100, (budgetStats.wantsSpent / budgetStats.wantsTarget) * 100)}%`, 
+                        backgroundColor: '#F59E0B' 
+                      }
                     ]} 
                   />
                 </View>
@@ -171,14 +245,17 @@ export default function Budget() {
                 <View style={styles.ruleItemHeader}>
                   <Text style={styles.ruleCategory}>Savings (20%)</Text>
                   <Text style={styles.ruleAmount}>
-                    {formatCurrency(savingsAmount)} / {formatCurrency(savingsTarget)}
+                    {formatCurrency(budgetStats.savings)} / {formatCurrency(budgetStats.savingsTarget)}
                   </Text>
                 </View>
                 <View style={styles.progressBar}>
                   <View 
                     style={[
                       styles.progressFill,
-                      { width: `${Math.min(100, (savingsAmount / savingsTarget) * 100)}%`, backgroundColor: '#3B82F6' }
+                      { 
+                        width: `${Math.min(100, (budgetStats.savings / budgetStats.savingsTarget) * 100)}%`, 
+                        backgroundColor: '#3B82F6' 
+                      }
                     ]} 
                   />
                 </View>
@@ -198,31 +275,58 @@ export default function Budget() {
               </TouchableOpacity>
             </View>
 
-            {budgetItems.map((item) => (
+            {financeItems.map((item) => (
               <View key={item.id} style={styles.budgetItem}>
                 <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={styles.itemName}>{item.note || item.category}</Text>
                   <Text style={styles.itemCategory}>{item.category}</Text>
-                </View>
-                <View style={styles.itemAmount}>
-                  <Text style={[
-                    styles.itemValue,
-                    item.type === 'income' ? styles.incomeValue : styles.expenseValue
-                  ]}>
-                    {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
+                  <Text style={styles.itemDate}>
+                    {new Date(item.created_at).toLocaleDateString()}
                   </Text>
-                  {item.isRecurring && (
-                    <Text style={styles.recurringBadge}>Monthly</Text>
-                  )}
+                </View>
+                <View style={styles.itemRight}>
+                  <View style={styles.itemAmount}>
+                    <Text style={[
+                      styles.itemValue,
+                      item.type === 'income' ? styles.incomeValue : 
+                      item.type === 'savings' ? styles.savingsValue : styles.expenseValue
+                    ]}>
+                      {item.type === 'income' ? '+' : '-'}{formatCurrency(Number(item.amount))}
+                    </Text>
+                    <Text style={styles.itemType}>{item.type}</Text>
+                  </View>
+                  <View style={styles.itemActions}>
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={() => handleEditItem(item)}
+                    >
+                      <Edit3 size={16} color="#6B7280" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={() => handleDeleteItem(item)}
+                    >
+                      <Trash2 size={16} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             ))}
+
+            {financeItems.length === 0 && !loading && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No budget items yet</Text>
+                <Text style={styles.emptySubtext}>Add your first income or expense to get started</Text>
+              </View>
+            )}
           </View>
 
-          {/* Add Item Form */}
+          {/* Add/Edit Item Form */}
           {showAddForm && (
             <View style={styles.addForm}>
-              <Text style={styles.formTitle}>Add Budget Item</Text>
+              <Text style={styles.formTitle}>
+                {editingItem ? 'Edit Budget Item' : 'Add Budget Item'}
+              </Text>
               
               <View style={styles.formRow}>
                 <TouchableOpacity
@@ -241,14 +345,15 @@ export default function Budget() {
                     Expense
                   </Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.typeButton, newItem.type === 'savings' && styles.activeTypeButton]}
+                  onPress={() => setNewItem({ ...newItem, type: 'savings', category: '' })}
+                >
+                  <Text style={[styles.typeButtonText, newItem.type === 'savings' && styles.activeTypeButtonText]}>
+                    Savings
+                  </Text>
+                </TouchableOpacity>
               </View>
-
-              <TextInput
-                style={styles.formInput}
-                placeholder="Item name"
-                value={newItem.name}
-                onChangeText={(text) => setNewItem({ ...newItem, name: text })}
-              />
 
               <TextInput
                 style={styles.formInput}
@@ -256,6 +361,13 @@ export default function Budget() {
                 value={newItem.amount}
                 onChangeText={(text) => setNewItem({ ...newItem, amount: text })}
                 keyboardType="numeric"
+              />
+
+              <TextInput
+                style={styles.formInput}
+                placeholder="Description (optional)"
+                value={newItem.note}
+                onChangeText={(text) => setNewItem({ ...newItem, note: text })}
               />
 
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -283,15 +395,17 @@ export default function Budget() {
               <View style={styles.formActions}>
                 <TouchableOpacity
                   style={styles.cancelButton}
-                  onPress={() => setShowAddForm(false)}
+                  onPress={resetForm}
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.saveButton}
-                  onPress={handleAddItem}
+                  onPress={editingItem ? handleUpdateItem : handleAddItem}
                 >
-                  <Text style={styles.saveButtonText}>Add Item</Text>
+                  <Text style={styles.saveButtonText}>
+                    {editingItem ? 'Update Item' : 'Add Item'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -306,6 +420,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
   },
   header: {
     paddingHorizontal: 20,
@@ -325,6 +450,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
+  },
+  errorContainer: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    margin: 20,
+  },
+  errorText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#DC2626',
   },
   content: {
     padding: 20,
@@ -470,6 +608,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
+    marginBottom: 2,
+  },
+  itemDate: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#9CA3AF',
+  },
+  itemRight: {
+    alignItems: 'flex-end',
+    gap: 8,
   },
   itemAmount: {
     alignItems: 'flex-end',
@@ -485,7 +633,10 @@ const styles = StyleSheet.create({
   expenseValue: {
     color: '#EF4444',
   },
-  recurringBadge: {
+  savingsValue: {
+    color: '#3B82F6',
+  },
+  itemType: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
     color: '#6B7280',
@@ -493,6 +644,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+    textTransform: 'capitalize',
+  },
+  itemActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    padding: 4,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#9CA3AF',
+    textAlign: 'center',
   },
   addForm: {
     backgroundColor: '#FFF',
@@ -512,7 +687,7 @@ const styles = StyleSheet.create({
   },
   formRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
     marginBottom: 16,
   },
   typeButton: {

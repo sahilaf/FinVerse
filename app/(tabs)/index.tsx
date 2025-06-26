@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { BookOpen,  Calculator, Sparkles } from 'lucide-react-native';
+import { BookOpen, Calculator, Sparkles, Video } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
 import XPProgressCard from '@/components/XPProgressCard';
 import LessonCard from '@/components/LessonCard';
@@ -71,9 +71,17 @@ export default function Dashboard() {
               
               <TouchableOpacity 
                 style={styles.actionCard}
+                onPress={() => router.push('/live-agent')}
+              >
+                <Video size={24} color="#3B82F6" />
+                <Text style={styles.actionText}>Live Advisor</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.actionCard}
                 onPress={() => router.push('/budget')}
               >
-                <Calculator size={24} color="#3B82F6" />
+                <Calculator size={24} color="#F59E0B" />
                 <Text style={styles.actionText}>Track Budget</Text>
               </TouchableOpacity>
             </View>
@@ -110,7 +118,7 @@ export default function Dashboard() {
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Recent Achievements</Text>
                 <TouchableOpacity onPress={() => router.push('/achievements')}>
-                  <Text style={styles.seeAllText}>See All</Text>
+                  <Text style={styles.seeAllText}>View All</Text>
                 </TouchableOpacity>
               </View>
               
@@ -209,7 +217,7 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
   },
   actionCard: {
     flex: 1,
@@ -224,7 +232,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   actionText: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Inter-SemiBold',
     color: '#374151',
     marginTop: 8,

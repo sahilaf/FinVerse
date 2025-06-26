@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { User, Settings, Crown, BookOpen, Award, CircleHelp as HelpCircle, LogOut, ChevronRight, Globe, Bell, Shield, Star } from 'lucide-react-native';
+import { User, Settings, Crown, BookOpen, Award, CircleHelp as HelpCircle, LogOut, ChevronRight, Globe, Bell, Shield, Star, Trophy } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useUserData } from '@/hooks/useUserData';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,20 +17,20 @@ const menuItems = [
     route: '/premium'
   },
   {
+    id: 'achievements',
+    title: 'Achievements',
+    subtitle: 'View your progress and badges',
+    icon: Trophy,
+    iconColor: '#10B981',
+    route: '/achievements'
+  },
+  {
     id: 'glossary',
     title: 'Financial Glossary',
     subtitle: 'Learn financial terms',
     icon: BookOpen,
     iconColor: '#3B82F6',
     route: '/glossary'
-  },
-  {
-    id: 'achievements',
-    title: 'Achievements',
-    subtitle: 'View your progress',
-    icon: Award,
-    iconColor: '#10B981',
-    route: '/achievements'
   },
   {
     id: 'notifications',

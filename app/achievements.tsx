@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Trophy, Star, Target, Award } from 'lucide-react-native';
+import { Trophy, Star, Target, Award, ArrowLeft } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import { useUserData } from '@/hooks/useUserData';
 import AchievementBadge from '@/components/AchievementBadge';
 import ProgressBar from '@/components/ProgressBar';
@@ -71,6 +72,7 @@ const allAchievements = [
 
 export default function Achievements() {
   const { user } = useUserData();
+  const router = useRouter();
 
   if (!user) {
     return (
@@ -90,8 +92,17 @@ export default function Achievements() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Achievements</Text>
-          <Text style={styles.subtitle}>Track your learning milestones</Text>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <ArrowLeft size={24} color="#111827" />
+          </TouchableOpacity>
+          
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>Achievements</Text>
+            <Text style={styles.subtitle}>Track your learning milestones</Text>
+          </View>
         </View>
 
         {/* Progress Overview */}
@@ -237,7 +248,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-    
   },
   loadingContainer: {
     flex: 1,
@@ -251,12 +261,20 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingVertical: 16,
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
     paddingTop: 60,
+  },
+  backButton: {
+    marginRight: 16,
+  },
+  headerContent: {
+    flex: 1,
   },
   title: {
     fontSize: 32,

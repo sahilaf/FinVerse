@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, BookOpen, Calculator, Trophy, User, Bot } from 'lucide-react-native';
+import { Chrome as Home, BookOpen, Calculator, User, Bot, Video } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -51,20 +51,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="live-agent"
+        options={{
+          title: 'Live Agent',
+          tabBarIcon: ({ size, color }) => (
+            <Video size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="budget"
         options={{
           title: 'Budget',
           tabBarIcon: ({ size, color }) => (
             <Calculator size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="achievements"
-        options={{
-          title: 'Progress',
-          tabBarIcon: ({ size, color }) => (
-            <Trophy size={size} color={color} />
           ),
         }}
       />
