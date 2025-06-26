@@ -9,10 +9,11 @@ import {
   Dimensions,
   Platform,
   ScrollView,
+  ImageBackground,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { WebView } from 'react-native-webview';
-import { Video, VideoOff, Mic, MicOff, Phone, PhoneOff, Maximize2, Minimize2, Volume2, VolumeX, Bot, RefreshCw } from 'lucide-react-native';
+import { Video, VideoOff, Mic, MicOff, Phone, PhoneOff, Settings, Maximize2, Minimize2, Volume2, VolumeX, Users, Clock, Sparkles, Bot, Zap, Shield, MessageCircle, Star, CircleAlert as AlertCircle, RefreshCw } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
 import { useTavusConversation } from '@/hooks/useTavusConversation';
 
@@ -21,8 +22,8 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 // Configuration for Tavus API
 const TAVUS_CONFIG = {
   apiKey: process.env.EXPO_PUBLIC_TAVUS_API_KEY || '',
-  replicaId: process.env.EXPO_PUBLIC_TAVUS_REPLICA_ID || '',
-  personaId: process.env.EXPO_PUBLIC_TAVUS_PERSONA_ID || '',
+  replicaId: process.env.EXPO_PUBLIC_TAVUS_REPLICA_ID || 'r4d9b2288937',
+  personaId: process.env.EXPO_PUBLIC_TAVUS_PERSONA_ID || 'p59e5e593b7e',
 };
 
 export default function LiveAgent() {
@@ -39,10 +40,11 @@ export default function LiveAgent() {
   
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isVolumeOn, setIsVolumeOn] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [sessionDuration, setSessionDuration] = useState(0);
   const [webViewLoaded, setWebViewLoaded] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const [dailyCallObject, setDailyCallObject] = useState<any>(null);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const webViewRef = useRef<WebView>(null);
@@ -55,27 +57,36 @@ export default function LiveAgent() {
         setSessionDuration(prev => prev + 1);
       }, 1000);
     } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
       setSessionDuration(0);
     }
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
   }, [isConnected]);
 
   // Auto-hide controls after inactivity
   useEffect(() => {
     if (isConnected && showControls) {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
       
       controlsTimeoutRef.current = setTimeout(() => {
         setShowControls(false);
-      }, 5000);
+      }, 5000); // Hide after 5 seconds of inactivity
     }
 
     return () => {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
     };
   }, [isConnected, showControls]);
 
@@ -91,23 +102,27 @@ export default function LiveAgent() {
       return;
     }
 
-    // Validate configuration
-    const missingConfig = [];
-    if (!TAVUS_CONFIG.apiKey) missingConfig.push('API Key');
-    if (!TAVUS_CONFIG.replicaId) missingConfig.push('Replica ID');
-    if (!TAVUS_CONFIG.personaId) missingConfig.push('Persona ID');
-    
-    if (missingConfig.length > 0) {
+    // Check configuration
+    if (!TAVUS_CONFIG.apiKey) {
       Alert.alert(
         'Configuration Required',
-        `Missing Tavus configuration: ${missingConfig.join(', ')}.\n\nPlease check your environment variables.`,
+        'Tavus API key is missing. Please add EXPO_PUBLIC_TAVUS_API_KEY to your environment variables.\n\nYou can get your API key from the Tavus dashboard.',
         [
           { text: 'OK' },
           { 
-            text: 'Dashboard', 
+            text: 'Learn More', 
             onPress: () => console.log('Visit: https://platform.tavus.io/') 
           }
         ]
+      );
+      return;
+    }
+
+    if (!TAVUS_CONFIG.replicaId || !TAVUS_CONFIG.personaId) {
+      Alert.alert(
+        'Configuration Required',
+        'Tavus Replica ID and Persona ID are required. Please check your environment variables:\n\n• EXPO_PUBLIC_TAVUS_REPLICA_ID\n• EXPO_PUBLIC_TAVUS_PERSONA_ID',
+        [{ text: 'OK' }]
       );
       return;
     }
@@ -124,12 +139,17 @@ export default function LiveAgent() {
     } catch (error: any) {
       console.error('Connection failed:', error);
       
-      // User-friendly error messages
-      let userMessage = error.message || 'An unknown error occurred';
-      if (error.message?.includes('401')) userMessage = 'Invalid API key';
-      else if (error.message?.includes('404')) userMessage = 'Replica or Persona not found';
-      else if (error.message?.includes('429')) userMessage = 'Too many requests, please try again later';
-      else if (error.message?.includes('500')) userMessage = 'Service unavailable, please try again later';
+      // Provide user-friendly error messages
+      let userMessage = error.message;
+      if (error.message.includes('401') || error.message.includes('Invalid API key')) {
+        userMessage = 'Invalid API key. Please check your Tavus configuration.';
+      } else if (error.message.includes('404') || error.message.includes('not found')) {
+        userMessage = 'Replica or Persona not found. Please check your Tavus IDs.';
+      } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+        userMessage = 'Too many requests. Please wait a moment and try again.';
+      } else if (error.message.includes('500') || error.message.includes('service')) {
+        userMessage = 'Tavus service is temporarily unavailable. Please try again later.';
+      }
       
       Alert.alert('Connection Failed', userMessage);
     }
@@ -138,16 +158,13 @@ export default function LiveAgent() {
   const handleDisconnect = () => {
     Alert.alert(
       'End Session',
-      'Are you sure you want to end your session?',
+      'Are you sure you want to end your live session with the AI financial advisor?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'End Session',
           style: 'destructive',
           onPress: () => {
-            if (dailyCallObject) {
-              dailyCallObject.leave();
-            }
             endConversation(conversationId || undefined);
           }
         }
@@ -157,79 +174,72 @@ export default function LiveAgent() {
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
-    if (dailyCallObject) {
-      dailyCallObject.setLocalAudio(!isMuted);
-    } else if (webViewRef.current) {
-      webViewRef.current.postMessage(JSON.stringify({ type: 'toggleMute', muted: !isMuted }));
+    // Send mute command to WebView
+    if (webViewRef.current) {
+      webViewRef.current.postMessage(JSON.stringify({
+        type: 'toggleMute',
+        muted: !isMuted
+      }));
     }
   };
 
   const toggleVideo = () => {
     setIsVideoEnabled(!isVideoEnabled);
-    if (dailyCallObject) {
-      dailyCallObject.setLocalVideo(!isVideoEnabled);
-    } else if (webViewRef.current) {
-      webViewRef.current.postMessage(JSON.stringify({ type: 'toggleVideo', enabled: !isVideoEnabled }));
+    // Send video toggle command to WebView
+    if (webViewRef.current) {
+      webViewRef.current.postMessage(JSON.stringify({
+        type: 'toggleVideo',
+        enabled: !isVideoEnabled
+      }));
     }
+  };
+
+  const toggleVolume = () => {
+    setIsVolumeOn(!isVolumeOn);
+    // Send volume toggle command to WebView
+    if (webViewRef.current) {
+      webViewRef.current.postMessage(JSON.stringify({
+        type: 'toggleVolume',
+        enabled: !isVolumeOn
+      }));
+    }
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
   };
 
   const showControlsTemporarily = () => {
     setShowControls(true);
   };
 
-  // Enhanced Daily.js integration
-  const initializeDailyCall = () => {
-    if (!conversationUrl) return;
-
-    // Initialize Daily.js
-    const callFrame = (window as any).DailyIframe?.createFrame({
-      iframeStyle: {
-        width: '100%',
-        height: '100%',
-      },
-      showLeaveButton: false,
-      showFullscreenButton: false,
-    });
-
-    callFrame.join({ url: conversationUrl })
-      .then(() => {
-        console.log('Joined Daily.co call');
-        setDailyCallObject(callFrame);
-        
-        // Set initial state
-        callFrame.getLocalAudio().then(audio => setIsMuted(!audio));
-        callFrame.getLocalVideo().then(video => setIsVideoEnabled(video));
-        
-        // Set up event listeners
-        callFrame.on('left-meeting', () => {
-          console.log('Left meeting');
-          endConversation();
-        });
-        
-        callFrame.on('participant-updated', (e: any) => {
-          if (e.participant.local) {
-            setIsMuted(!e.participant.audio);
-            setIsVideoEnabled(e.participant.video);
-          }
-        });
-      })
-      .catch((err: any) => {
-        console.error('Daily.co join error:', err);
-        Alert.alert('Connection Error', 'Failed to join video session');
-      });
-  };
-
   if (error) {
     return (
       <View style={styles.container}>
         <LinearGradient colors={['#EF4444', '#DC2626']} style={styles.errorContainer}>
+          <AlertCircle size={48} color="#FFF" />
           <Text style={styles.errorTitle}>Connection Error</Text>
           <Text style={styles.errorMessage}>{error}</Text>
           
-          <TouchableOpacity style={styles.retryButton} onPress={handleConnect}>
-            <RefreshCw size={20} color="#FFF" />
-            <Text style={styles.retryButtonText}>Try Again</Text>
-          </TouchableOpacity>
+          <View style={styles.errorActions}>
+            <TouchableOpacity style={styles.retryButton} onPress={handleConnect}>
+              <RefreshCw size={20} color="#FFF" />
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.helpButton} 
+              onPress={() => {
+                Alert.alert(
+                  'Troubleshooting',
+                  'Common issues:\n\n• Check your internet connection\n• Verify Tavus API key is valid\n• Ensure Replica and Persona IDs are correct\n• Try again in a few moments',
+                  [{ text: 'OK' }]
+                );
+              }}
+            >
+              <Text style={styles.helpButtonText}>Get Help</Text>
+            </TouchableOpacity>
+          </View>
         </LinearGradient>
       </View>
     );
@@ -238,6 +248,7 @@ export default function LiveAgent() {
   if (isConnected && conversationUrl) {
     return (
       <View style={styles.container}>
+        {/* Session Header - Only show when controls are visible */}
         {showControls && (
           <View style={styles.sessionHeader}>
             <View style={styles.sessionInfo}>
@@ -249,13 +260,18 @@ export default function LiveAgent() {
             </View>
             
             <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.headerButton}>
-                <Maximize2 size={20} color="#FFF" />
+              <TouchableOpacity style={styles.headerButton} onPress={toggleFullscreen}>
+                {isFullscreen ? (
+                  <Minimize2 size={20} color="#FFF" />
+                ) : (
+                  <Maximize2 size={20} color="#FFF" />
+                )}
               </TouchableOpacity>
             </View>
           </View>
         )}
 
+        {/* Tavus Conversation WebView */}
         <TouchableOpacity 
           style={styles.conversationContainer}
           activeOpacity={1}
@@ -270,16 +286,13 @@ export default function LiveAgent() {
             javaScriptEnabled={true}
             domStorageEnabled={true}
             startInLoadingState={true}
-            onLoadEnd={() => {
-              setWebViewLoaded(true);
-              initializeDailyCall();
-            }}
+            onLoadEnd={() => setWebViewLoaded(true)}
             onError={(syntheticEvent) => {
               const { nativeEvent } = syntheticEvent;
               console.error('WebView error:', nativeEvent);
               Alert.alert(
-                'Connection Error',
-                'Failed to load the conversation. Please check your internet connection.'
+                'WebView Error',
+                'Failed to load the conversation. Please check your internet connection and try again.'
               );
             }}
             renderLoading={() => (
@@ -287,53 +300,190 @@ export default function LiveAgent() {
                 <View style={styles.loadingContent}>
                   <ActivityIndicator size="large" color="#10B981" />
                   <Text style={styles.loadingText}>Connecting to your AI advisor...</Text>
+                  <Text style={styles.loadingSubtext}>
+                    Setting up your personalized session with {user?.name}
+                  </Text>
                 </View>
               </View>
             )}
-            injectedJavaScript={`
-              // Initialize Daily.js if available
-              if (window.DailyIframe) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'dailyAvailable' }));
-              }
-              
-              // Auto-fill user information
-              setTimeout(() => {
-                try {
-                  const nameInputs = document.querySelectorAll('input[type="text"]');
-                  const emailInputs = document.querySelectorAll('input[type="email"]');
-                  
-                  if (nameInputs.length > 0) {
-                    nameInputs[0].value = '${user?.name || 'User'}';
-                    const inputEvent = new Event('input', { bubbles: true });
-                    nameInputs[0].dispatchEvent(inputEvent);
-                  }
-                  
-                  if (emailInputs.length > 0) {
-                    emailInputs[0].value = '${user?.email || ''}';
-                    const inputEvent = new Event('input', { bubbles: true });
-                    emailInputs[0].dispatchEvent(inputEvent);
-                  }
-                  
-                  // Auto-click join button after 1s
-                  setTimeout(() => {
-                    const buttons = document.querySelectorAll('button');
-                    for (const btn of buttons) {
-                      if (btn.innerText.toLowerCase().includes('join') || 
-                          btn.innerText.toLowerCase().includes('enter')) {
-                        btn.click();
-                        break;
-                      }
-                    }
-                  }, 1000);
-                } catch (e) {
-                  window.ReactNativeWebView.postMessage('Auto-fill error: ' + e.message);
+            onMessage={(event) => {
+              try {
+                const data = JSON.parse(event.nativeEvent.data);
+                console.log('WebView message:', data);
+                
+                // Handle specific events from Tavus
+                if (data.type === 'conversationStarted') {
+                  setWebViewLoaded(true);
+                } else if (data.type === 'conversationEnded') {
+                  endConversation();
                 }
-              }, 500);
+              } catch (error) {
+                console.log('WebView message (raw):', event.nativeEvent.data);
+              }
+            }}
+            injectedJavaScript={`
+              // Enhanced JavaScript injection for better UX
+              (function() {
+                console.log('Tavus WebView JavaScript injection started');
+                
+                // Auto-fill user information if forms are present
+                function autoFillUserInfo() {
+                  try {
+                    // Look for name input fields
+                    const nameInputs = document.querySelectorAll('input[type="text"], input[placeholder*="name"], input[placeholder*="Name"], input[name*="name"]');
+                    nameInputs.forEach(input => {
+                      if (input.value === '' || input.placeholder.toLowerCase().includes('name')) {
+                        input.value = '${user?.name || 'User'}';
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log('Auto-filled name field:', input);
+                      }
+                    });
+                    
+                    // Look for email input fields
+                    const emailInputs = document.querySelectorAll('input[type="email"], input[placeholder*="email"], input[name*="email"]');
+                    emailInputs.forEach(input => {
+                      if (input.value === '') {
+                        input.value = '${user?.email || ''}';
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log('Auto-filled email field:', input);
+                      }
+                    });
+                    
+                    // Auto-click join/start/continue buttons
+                    setTimeout(() => {
+                      const buttons = document.querySelectorAll('button, [role="button"], input[type="submit"]');
+                      buttons.forEach(button => {
+                        const text = (button.textContent || button.value || '').toLowerCase();
+                        if (text.includes('join') || text.includes('start') || text.includes('continue') || text.includes('enter')) {
+                          console.log('Auto-clicking button:', button);
+                          button.click();
+                        }
+                      });
+                    }, 1000);
+                  } catch (error) {
+                    console.error('Error in autoFillUserInfo:', error);
+                  }
+                }
+                
+                // Run auto-fill after page loads
+                if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', autoFillUserInfo);
+                } else {
+                  autoFillUserInfo();
+                }
+                
+                // Re-run auto-fill when new content is added
+                const observer = new MutationObserver((mutations) => {
+                  let shouldAutoFill = false;
+                  mutations.forEach(mutation => {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                      shouldAutoFill = true;
+                    }
+                  });
+                  if (shouldAutoFill) {
+                    setTimeout(autoFillUserInfo, 500);
+                  }
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+                
+                // Handle control messages from React Native
+                window.addEventListener('message', function(event) {
+                  try {
+                    const data = JSON.parse(event.data);
+                    console.log('Received message from React Native:', data);
+                    
+                    switch(data.type) {
+                      case 'toggleMute':
+                        // Try to find and click mute button
+                        const muteSelectors = [
+                          '[data-testid="mute"]',
+                          'button[aria-label*="mute"]',
+                          'button[title*="mute"]',
+                          'button[aria-label*="Mute"]',
+                          'button[title*="Mute"]',
+                          '.mute-button',
+                          '#mute-btn'
+                        ];
+                        for (const selector of muteSelectors) {
+                          const btn = document.querySelector(selector);
+                          if (btn) {
+                            btn.click();
+                            console.log('Clicked mute button:', btn);
+                            break;
+                          }
+                        }
+                        break;
+                        
+                      case 'toggleVideo':
+                        // Try to find and click video button
+                        const videoSelectors = [
+                          '[data-testid="video"]',
+                          'button[aria-label*="video"]',
+                          'button[title*="video"]',
+                          'button[aria-label*="Video"]',
+                          'button[title*="Video"]',
+                          '.video-button',
+                          '#video-btn'
+                        ];
+                        for (const selector of videoSelectors) {
+                          const btn = document.querySelector(selector);
+                          if (btn) {
+                            btn.click();
+                            console.log('Clicked video button:', btn);
+                            break;
+                          }
+                        }
+                        break;
+                        
+                      case 'toggleVolume':
+                        // Try to find and click volume button
+                        const volumeSelectors = [
+                          '[data-testid="volume"]',
+                          'button[aria-label*="volume"]',
+                          'button[title*="volume"]',
+                          'button[aria-label*="Volume"]',
+                          'button[title*="Volume"]',
+                          '.volume-button',
+                          '#volume-btn'
+                        ];
+                        for (const selector of volumeSelectors) {
+                          const btn = document.querySelector(selector);
+                          if (btn) {
+                            btn.click();
+                            console.log('Clicked volume button:', btn);
+                            break;
+                          }
+                        }
+                        break;
+                    }
+                  } catch (e) {
+                    console.error('Error handling message:', e);
+                  }
+                });
+                
+                // Send status updates to React Native
+                function sendStatus(type, data) {
+                  if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ type, ...data }));
+                  }
+                }
+                
+                // Monitor for conversation events
+                setTimeout(() => {
+                  sendStatus('conversationStarted', {});
+                  console.log('Sent conversationStarted event');
+                }, 3000);
+                
+                console.log('Tavus WebView JavaScript injection completed');
+              })();
               true;
             `}
           />
         </TouchableOpacity>
 
+        {/* Control Panel - Only show when controls are visible */}
         {showControls && (
           <View style={styles.controlPanel}>
             <View style={styles.controlsRow}>
@@ -360,11 +510,29 @@ export default function LiveAgent() {
               </TouchableOpacity>
 
               <TouchableOpacity
+                style={[styles.controlButton, !isVolumeOn && styles.disabledButton]}
+                onPress={toggleVolume}
+              >
+                {isVolumeOn ? (
+                  <Volume2 size={24} color="#FFF" />
+                ) : (
+                  <VolumeX size={24} color="#FFF" />
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 style={styles.endCallButton}
                 onPress={handleDisconnect}
               >
                 <PhoneOff size={24} color="#FFF" />
               </TouchableOpacity>
+            </View>
+
+            <View style={styles.sessionDetails}>
+              <Text style={styles.sessionTitle}>Live Financial Consultation</Text>
+              <Text style={styles.sessionDescription}>
+                Tap anywhere to show/hide controls
+              </Text>
             </View>
           </View>
         )}
@@ -374,45 +542,81 @@ export default function LiveAgent() {
 
   return (
     <ScrollView style={styles.container}>
-      <LinearGradient
-        colors={['rgba(16, 185, 129, 0.1)', 'rgba(6, 95, 70, 0.3)']}
-        style={styles.overlay}
-      >
-        <View style={styles.header}>
-          <View style={styles.headerIcon}>
-            <Bot size={32} color="#FFF" />
+     
+        <LinearGradient
+          colors={['rgba(16, 185, 129, 0.1)', 'rgba(6, 95, 70, 0.3)']}
+          style={styles.overlay}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerIcon}>
+              <Bot size={32} color="#FFF" />
+            </View>
+            <Text style={styles.headerTitle}>AI Financial Advisor</Text>
+            <Text style={styles.headerSubtitle}>
+              Get personalized financial guidance from your AI advisor
+            </Text>
+            {user && (
+              <View style={styles.userGreeting}>
+                <Text style={styles.greetingText}>
+                  Ready to help you, {user.name}!
+                </Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.headerTitle}>AI Financial Advisor</Text>
-          <Text style={styles.headerSubtitle}>
-            Get personalized financial guidance
-          </Text>
-        </View>
 
-        <View style={styles.connectionSection}>
-          <TouchableOpacity
-            style={[styles.connectButton, isConnecting && styles.disabledConnectButton]}
-            onPress={handleConnect}
-            disabled={isConnecting}
-          >
-            <LinearGradient
-              colors={['#10B981', '#059669']}
-              style={styles.connectButtonGradient}
+         
+
+          {/* Features */}
+          <View style={styles.featuresSection}>
+            <View style={styles.featureCard}>
+              <MessageCircle size={24} color="#10B981" />
+              <Text style={styles.featureTitle}>Instant Connection</Text>
+              <Text style={styles.featureDescription}>
+                No waiting rooms or complex setup - jump straight into your session
+              </Text>
+            </View>
+            
+           
+            
+            
+          </View>
+
+          {/* Connection Button */}
+          <View style={styles.connectionSection}>
+            <TouchableOpacity
+              style={[styles.connectButton, isConnecting && styles.disabledConnectButton]}
+              onPress={handleConnect}
+              disabled={isConnecting}
             >
-              {isConnecting ? (
-                <>
-                  <ActivityIndicator color="#FFF" size="small" />
-                  <Text style={styles.connectButtonText}>Connecting...</Text>
-                </>
-              ) : (
-                <>
-                  <Phone size={24} color="#FFF" />
-                  <Text style={styles.connectButtonText}>Start Live Session</Text>
-                </>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                style={styles.connectButtonGradient}
+              >
+                {isConnecting ? (
+                  <>
+                    <ActivityIndicator color="#FFF" size="small" />
+                    <Text style={styles.connectButtonText}>Connecting...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Phone size={24} color="#FFF" />
+                    <Text style={styles.connectButtonText}>Start Live Session</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <Text style={styles.connectionNote}>
+              {isConnecting 
+                ? 'Setting up your personalized session...' 
+                : 'One-click connection • No setup required'
+              }
+            </Text>
+          </View>
+
+         
+        </LinearGradient>
     </ScrollView>
   );
 }
@@ -803,3 +1007,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
