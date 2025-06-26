@@ -577,21 +577,9 @@ export default function LiveAgent() {
               </Text>
             </View>
             
-            <View style={styles.featureCard}>
-              <Star size={24} color="#F59E0B" />
-              <Text style={styles.featureTitle}>Personalized Experience</Text>
-              <Text style={styles.featureDescription}>
-                Your session is automatically customized with your profile information
-              </Text>
-            </View>
+           
             
-            <View style={styles.featureCard}>
-              <Shield size={24} color="#3B82F6" />
-              <Text style={styles.featureTitle}>Secure & Private</Text>
-              <Text style={styles.featureDescription}>
-                End-to-end encrypted conversations with enterprise-grade security
-              </Text>
-            </View>
+            
           </View>
 
           {/* Connection Button */}
