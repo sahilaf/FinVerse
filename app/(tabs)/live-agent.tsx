@@ -565,40 +565,7 @@ export default function LiveAgent() {
             )}
           </View>
 
-          {/* Configuration Status */}
-          <View style={styles.configSection}>
-            <View style={[
-              styles.configItem,
-              TAVUS_CONFIG.apiKey ? styles.configValid : styles.configInvalid
-            ]}>
-              <View style={styles.configIcon}>
-                {TAVUS_CONFIG.apiKey ? (
-                  <Shield size={16} color="#10B981" />
-                ) : (
-                  <AlertCircle size={16} color="#EF4444" />
-                )}
-              </View>
-              <Text style={styles.configText}>
-                API Key: {TAVUS_CONFIG.apiKey ? 'Configured' : 'Missing'}
-              </Text>
-            </View>
-            
-            <View style={[
-              styles.configItem,
-              TAVUS_CONFIG.replicaId ? styles.configValid : styles.configInvalid
-            ]}>
-              <View style={styles.configIcon}>
-                {TAVUS_CONFIG.replicaId ? (
-                  <Bot size={16} color="#10B981" />
-                ) : (
-                  <AlertCircle size={16} color="#EF4444" />
-                )}
-              </View>
-              <Text style={styles.configText}>
-                Replica: {TAVUS_CONFIG.replicaId ? 'Ready' : 'Missing'}
-              </Text>
-            </View>
-          </View>
+         
 
           {/* Features */}
           <View style={styles.featuresSection}>
