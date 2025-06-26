@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
   connectionSection: {
     alignItems: 'center',
     marginBottom: 24,
-    marginTop: 40
+    marginTop: 48
   },
   connectButton: {
     borderRadius: 16,
