@@ -45,6 +45,13 @@ export function useDailyConversation() {
         participant_absent_timeout: 300,
         enable_closed_captions: false, // Reduce UI clutter
         language: 'english',
+        // Additional properties for better mobile experience
+        enable_prejoin_ui: false, // Skip pre-join screen
+        enable_network_ui: false, // Hide network quality indicator
+        enable_people_ui: true, // Keep participant list
+        enable_pip_ui: false, // Disable picture-in-picture for mobile
+        start_video_off: false, // Start with video on
+        start_audio_off: false, // Start with audio on
       }
     };
 
