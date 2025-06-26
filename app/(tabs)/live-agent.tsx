@@ -615,30 +615,7 @@ export default function LiveAgent() {
             </Text>
           </View>
 
-          {/* Benefits */}
-          <View style={styles.benefitsSection}>
-            <Text style={styles.benefitsTitle}>What to Expect</Text>
-            <View style={styles.benefitsList}>
-              <View style={styles.benefitItem}>
-                <View style={styles.benefitIcon}>
-                  <Zap size={16} color="#10B981" />
-                </View>
-                <Text style={styles.benefitText}>Instant session start with your name pre-filled</Text>
-              </View>
-              <View style={styles.benefitItem}>
-                <View style={styles.benefitIcon}>
-                  <MessageCircle size={16} color="#10B981" />
-                </View>
-                <Text style={styles.benefitText}>Natural conversation about your financial goals</Text>
-              </View>
-              <View style={styles.benefitItem}>
-                <View style={styles.benefitIcon}>
-                  <Star size={16} color="#10B981" />
-                </View>
-                <Text style={styles.benefitText}>Personalized advice based on your profile</Text>
-              </View>
-            </View>
-          </View>
+         
         </LinearGradient>
     </ScrollView>
   );
