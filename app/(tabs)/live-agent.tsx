@@ -542,13 +542,7 @@ export default function LiveAgent() {
 
   return (
     <ScrollView style={styles.container}>
-      <ImageBackground
-        source={{
-          uri: 'https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=1200',
-        }}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
+     
         <LinearGradient
           colors={['rgba(16, 185, 129, 0.1)', 'rgba(6, 95, 70, 0.3)']}
           style={styles.overlay}
@@ -691,7 +685,6 @@ export default function LiveAgent() {
             </View>
           </View>
         </LinearGradient>
-      </ImageBackground>
     </ScrollView>
   );
 }
