@@ -31,6 +31,8 @@ import {
   Bot,
   Zap,
   Shield,
+  MessageCircle,
+  Star,
 } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
 import { useTavusConversation } from '@/hooks/useTavusConversation';
@@ -61,9 +63,12 @@ export default function LiveAgent() {
   const [isVolumeOn, setIsVolumeOn] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sessionDuration, setSessionDuration] = useState(0);
+  const [webViewLoaded, setWebViewLoaded] = useState(false);
+  const [showControls, setShowControls] = useState(true);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const webViewRef = useRef<WebView>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Session timer
   useEffect(() => {
@@ -85,6 +90,25 @@ export default function LiveAgent() {
       }
     };
   }, [isConnected]);
+
+  // Auto-hide controls after inactivity
+  useEffect(() => {
+    if (isConnected && showControls) {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+      
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 5000); // Hide after 5 seconds of inactivity
+    }
+
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, [isConnected, showControls]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -112,6 +136,9 @@ export default function LiveAgent() {
         apiKey: TAVUS_CONFIG.apiKey,
         replicaId: TAVUS_CONFIG.replicaId,
         personaId: TAVUS_CONFIG.personaId,
+        userName: user.name,
+        userEmail: user.email,
+        conversationName: `Financial Consultation - ${user.name}`,
       });
     } catch (error: any) {
       Alert.alert('Connection Failed', error.message);
@@ -128,7 +155,7 @@ export default function LiveAgent() {
           text: 'End Session',
           style: 'destructive',
           onPress: () => {
-            endConversation();
+            endConversation(conversationId || undefined);
           }
         }
       ]
@@ -172,10 +199,15 @@ export default function LiveAgent() {
     setIsFullscreen(!isFullscreen);
   };
 
+  const showControlsTemporarily = () => {
+    setShowControls(true);
+  };
+
   if (error) {
     return (
       <View style={styles.container}>
         <LinearGradient colors={['#EF4444', '#DC2626']} style={styles.errorContainer}>
+          <Bot size={48} color="#FFF" />
           <Text style={styles.errorTitle}>Connection Error</Text>
           <Text style={styles.errorMessage}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={handleConnect}>
@@ -189,27 +221,35 @@ export default function LiveAgent() {
   if (isConnected && conversationUrl) {
     return (
       <View style={styles.container}>
-        {/* Session Header */}
-        <View style={styles.sessionHeader}>
-          <View style={styles.sessionInfo}>
-            <View style={styles.liveBadge}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>LIVE</Text>
+        {/* Session Header - Only show when controls are visible */}
+        {showControls && (
+          <View style={styles.sessionHeader}>
+            <View style={styles.sessionInfo}>
+              <View style={styles.liveBadge}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveText}>LIVE</Text>
+              </View>
+              <Text style={styles.sessionTime}>{formatTime(sessionDuration)}</Text>
             </View>
-            <Text style={styles.sessionTime}>{formatTime(sessionDuration)}</Text>
+            
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.headerButton} onPress={toggleFullscreen}>
+                {isFullscreen ? (
+                  <Minimize2 size={20} color="#FFF" />
+                ) : (
+                  <Maximize2 size={20} color="#FFF" />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-          
-          <TouchableOpacity style={styles.fullscreenButton} onPress={toggleFullscreen}>
-            {isFullscreen ? (
-              <Minimize2 size={20} color="#FFF" />
-            ) : (
-              <Maximize2 size={20} color="#FFF" />
-            )}
-          </TouchableOpacity>
-        </View>
+        )}
 
         {/* Tavus Conversation WebView */}
-        <View style={styles.conversationContainer}>
+        <TouchableOpacity 
+          style={styles.conversationContainer}
+          activeOpacity={1}
+          onPress={showControlsTemporarily}
+        >
           <WebView
             ref={webViewRef}
             source={{ uri: conversationUrl }}
@@ -219,93 +259,160 @@ export default function LiveAgent() {
             javaScriptEnabled={true}
             domStorageEnabled={true}
             startInLoadingState={true}
+            onLoadEnd={() => setWebViewLoaded(true)}
             renderLoading={() => (
               <View style={styles.webViewLoading}>
-                <ActivityIndicator size="large" color="#10B981" />
-                <Text style={styles.loadingText}>Connecting to your AI advisor...</Text>
+                <View style={styles.loadingContent}>
+                  <ActivityIndicator size="large" color="#10B981" />
+                  <Text style={styles.loadingText}>Connecting to your AI advisor...</Text>
+                  <Text style={styles.loadingSubtext}>
+                    Setting up your personalized session with {user?.name}
+                  </Text>
+                </View>
               </View>
             )}
             onMessage={(event) => {
               try {
                 const data = JSON.parse(event.nativeEvent.data);
                 console.log('WebView message:', data);
-                // Handle messages from the Tavus conversation if needed
+                
+                // Handle specific events from Tavus
+                if (data.type === 'conversationStarted') {
+                  setWebViewLoaded(true);
+                } else if (data.type === 'conversationEnded') {
+                  endConversation();
+                }
               } catch (error) {
                 console.log('WebView message (raw):', event.nativeEvent.data);
               }
             }}
             injectedJavaScript={`
-              // Inject JavaScript to handle controls
-              window.addEventListener('message', function(event) {
-                const data = JSON.parse(event.data);
-                switch(data.type) {
-                  case 'toggleMute':
-                    // Handle mute toggle in Tavus interface
-                    break;
-                  case 'toggleVideo':
-                    // Handle video toggle in Tavus interface
-                    break;
-                  case 'toggleVolume':
-                    // Handle volume toggle in Tavus interface
-                    break;
+              // Enhanced JavaScript injection for better UX
+              (function() {
+                // Auto-fill user information if forms are present
+                function autoFillUserInfo() {
+                  const nameInputs = document.querySelectorAll('input[type="text"], input[placeholder*="name"], input[placeholder*="Name"]');
+                  nameInputs.forEach(input => {
+                    if (input.value === '' || input.placeholder.toLowerCase().includes('name')) {
+                      input.value = '${user?.name || 'User'}';
+                      input.dispatchEvent(new Event('input', { bubbles: true }));
+                      input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                  });
+                  
+                  // Auto-click join/start buttons
+                  const joinButtons = document.querySelectorAll('button');
+                  joinButtons.forEach(button => {
+                    const text = button.textContent?.toLowerCase() || '';
+                    if (text.includes('join') || text.includes('start') || text.includes('continue')) {
+                      setTimeout(() => button.click(), 1000);
+                    }
+                  });
                 }
-              });
+                
+                // Run auto-fill after page loads
+                if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', autoFillUserInfo);
+                } else {
+                  autoFillUserInfo();
+                }
+                
+                // Re-run auto-fill when new content is added
+                const observer = new MutationObserver(autoFillUserInfo);
+                observer.observe(document.body, { childList: true, subtree: true });
+                
+                // Handle control messages from React Native
+                window.addEventListener('message', function(event) {
+                  try {
+                    const data = JSON.parse(event.data);
+                    switch(data.type) {
+                      case 'toggleMute':
+                        // Try to find and click mute button
+                        const muteBtn = document.querySelector('[data-testid="mute"], button[aria-label*="mute"], button[title*="mute"]');
+                        if (muteBtn) muteBtn.click();
+                        break;
+                      case 'toggleVideo':
+                        // Try to find and click video button
+                        const videoBtn = document.querySelector('[data-testid="video"], button[aria-label*="video"], button[title*="video"]');
+                        if (videoBtn) videoBtn.click();
+                        break;
+                      case 'toggleVolume':
+                        // Try to find and click volume button
+                        const volumeBtn = document.querySelector('[data-testid="volume"], button[aria-label*="volume"], button[title*="volume"]');
+                        if (volumeBtn) volumeBtn.click();
+                        break;
+                    }
+                  } catch (e) {
+                    console.log('Error handling message:', e);
+                  }
+                });
+                
+                // Send status updates to React Native
+                function sendStatus(type, data) {
+                  window.ReactNativeWebView?.postMessage(JSON.stringify({ type, ...data }));
+                }
+                
+                // Monitor for conversation events
+                setTimeout(() => sendStatus('conversationStarted', {}), 2000);
+              })();
               true;
             `}
           />
-        </View>
+        </TouchableOpacity>
 
-        {/* Control Panel */}
-        <View style={styles.controlPanel}>
-          <View style={styles.controlsRow}>
-            <TouchableOpacity
-              style={[styles.controlButton, isMuted && styles.mutedButton]}
-              onPress={toggleMute}
-            >
-              {isMuted ? (
-                <MicOff size={24} color="#FFF" />
-              ) : (
-                <Mic size={24} color="#FFF" />
-              )}
-            </TouchableOpacity>
+        {/* Control Panel - Only show when controls are visible */}
+        {showControls && (
+          <View style={styles.controlPanel}>
+            <View style={styles.controlsRow}>
+              <TouchableOpacity
+                style={[styles.controlButton, isMuted && styles.mutedButton]}
+                onPress={toggleMute}
+              >
+                {isMuted ? (
+                  <MicOff size={24} color="#FFF" />
+                ) : (
+                  <Mic size={24} color="#FFF" />
+                )}
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.controlButton, !isVideoEnabled && styles.disabledButton]}
-              onPress={toggleVideo}
-            >
-              {isVideoEnabled ? (
-                <Video size={24} color="#FFF" />
-              ) : (
-                <VideoOff size={24} color="#FFF" />
-              )}
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.controlButton, !isVideoEnabled && styles.disabledButton]}
+                onPress={toggleVideo}
+              >
+                {isVideoEnabled ? (
+                  <Video size={24} color="#FFF" />
+                ) : (
+                  <VideoOff size={24} color="#FFF" />
+                )}
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.controlButton, !isVolumeOn && styles.disabledButton]}
-              onPress={toggleVolume}
-            >
-              {isVolumeOn ? (
-                <Volume2 size={24} color="#FFF" />
-              ) : (
-                <VolumeX size={24} color="#FFF" />
-              )}
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.controlButton, !isVolumeOn && styles.disabledButton]}
+                onPress={toggleVolume}
+              >
+                {isVolumeOn ? (
+                  <Volume2 size={24} color="#FFF" />
+                ) : (
+                  <VolumeX size={24} color="#FFF" />
+                )}
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.endCallButton}
-              onPress={handleDisconnect}
-            >
-              <PhoneOff size={24} color="#FFF" />
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.endCallButton}
+                onPress={handleDisconnect}
+              >
+                <PhoneOff size={24} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.sessionDetails}>
+              <Text style={styles.sessionTitle}>Live Financial Consultation</Text>
+              <Text style={styles.sessionDescription}>
+                Tap anywhere to show/hide controls
+              </Text>
+            </View>
           </View>
-
-          <View style={styles.sessionDetails}>
-            <Text style={styles.sessionTitle}>Live Financial Consultation</Text>
-            <Text style={styles.sessionDescription}>
-              Real-time advice from your AI financial advisor
-            </Text>
-          </View>
-        </View>
+        )}
       </View>
     );
   }
@@ -330,25 +437,32 @@ export default function LiveAgent() {
             </View>
             <Text style={styles.headerTitle}>AI Financial Advisor</Text>
             <Text style={styles.headerSubtitle}>
-              Connect with Tavus-powered AI for personalized financial guidance
+              Get personalized financial guidance from your AI advisor
             </Text>
+            {user && (
+              <View style={styles.userGreeting}>
+                <Text style={styles.greetingText}>
+                  Ready to help you, {user.name}!
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Features */}
           <View style={styles.featuresSection}>
             <View style={styles.featureCard}>
-              <Sparkles size={24} color="#10B981" />
-              <Text style={styles.featureTitle}>Real-Time Video</Text>
+              <MessageCircle size={24} color="#10B981" />
+              <Text style={styles.featureTitle}>Instant Connection</Text>
               <Text style={styles.featureDescription}>
-                Face-to-face conversation with lifelike AI avatar
+                No waiting rooms or complex setup - jump straight into your session
               </Text>
             </View>
             
             <View style={styles.featureCard}>
-              <Zap size={24} color="#F59E0B" />
-              <Text style={styles.featureTitle}>AI-Powered</Text>
+              <Star size={24} color="#F59E0B" />
+              <Text style={styles.featureTitle}>Personalized Experience</Text>
               <Text style={styles.featureDescription}>
-                Advanced AI understanding for complex financial questions
+                Your session is automatically customized with your profile information
               </Text>
             </View>
             
@@ -356,7 +470,7 @@ export default function LiveAgent() {
               <Shield size={24} color="#3B82F6" />
               <Text style={styles.featureTitle}>Secure & Private</Text>
               <Text style={styles.featureDescription}>
-                End-to-end encrypted sessions via Tavus infrastructure
+                End-to-end encrypted conversations with enterprise-grade security
               </Text>
             </View>
           </View>
@@ -373,7 +487,10 @@ export default function LiveAgent() {
                 style={styles.connectButtonGradient}
               >
                 {isConnecting ? (
-                  <ActivityIndicator color="#FFF" size="small" />
+                  <>
+                    <ActivityIndicator color="#FFF" size="small" />
+                    <Text style={styles.connectButtonText}>Connecting...</Text>
+                  </>
                 ) : (
                   <>
                     <Phone size={24} color="#FFF" />
@@ -384,19 +501,36 @@ export default function LiveAgent() {
             </TouchableOpacity>
 
             <Text style={styles.connectionNote}>
-              {isConnecting ? 'Connecting to your AI advisor...' : 'Average session: 15-30 minutes'}
+              {isConnecting 
+                ? 'Setting up your personalized session...' 
+                : 'One-click connection • No setup required'
+              }
             </Text>
           </View>
 
-          {/* Technical Info */}
-          <View style={styles.techInfo}>
-            <Text style={styles.techTitle}>Powered by Tavus AI</Text>
-            <Text style={styles.techDescription}>
-              • Realistic AI avatars with natural expressions{'\n'}
-              • Advanced conversational AI capabilities{'\n'}
-              • Real-time video communication{'\n'}
-              • Secure and private conversations
-            </Text>
+          {/* Benefits */}
+          <View style={styles.benefitsSection}>
+            <Text style={styles.benefitsTitle}>What to Expect</Text>
+            <View style={styles.benefitsList}>
+              <View style={styles.benefitItem}>
+                <View style={styles.benefitIcon}>
+                  <Zap size={16} color="#10B981" />
+                </View>
+                <Text style={styles.benefitText}>Instant session start with your name pre-filled</Text>
+              </View>
+              <View style={styles.benefitItem}>
+                <View style={styles.benefitIcon}>
+                  <MessageCircle size={16} color="#10B981" />
+                </View>
+                <Text style={styles.benefitText}>Natural conversation about your financial goals</Text>
+              </View>
+              <View style={styles.benefitItem}>
+                <View style={styles.benefitIcon}>
+                  <Star size={16} color="#10B981" />
+                </View>
+                <Text style={styles.benefitText}>Personalized advice based on your profile</Text>
+              </View>
+            </View>
           </View>
         </LinearGradient>
       </ImageBackground>
@@ -420,7 +554,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   headerIcon: {
     width: 80,
@@ -446,9 +580,23 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
     lineHeight: 24,
+    marginBottom: 16,
+  },
+  userGreeting: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  greetingText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFF',
   },
   featuresSection: {
-    marginBottom: 40,
+    marginBottom: 32,
   },
   featureCard: {
     backgroundColor: 'rgba(255,255,255,0.1)',
@@ -473,7 +621,7 @@ const styles = StyleSheet.create({
   },
   connectionSection: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   connectButton: {
     borderRadius: 16,
@@ -507,23 +655,41 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
   },
-  techInfo: {
+  benefitsSection: {
     backgroundColor: 'rgba(0,0,0,0.3)',
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  techTitle: {
-    fontSize: 16,
+  benefitsTitle: {
+    fontSize: 18,
     fontFamily: 'Inter-SemiBold',
-    color: '#10B981',
-    marginBottom: 12,
+    color: '#FFF',
+    marginBottom: 16,
+    textAlign: 'center',
   },
-  techDescription: {
+  benefitsList: {
+    gap: 12,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  benefitIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  benefitText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255,255,255,0.8)',
+    flex: 1,
     lineHeight: 20,
   },
   errorContainer: {
@@ -537,6 +703,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Bold',
     color: '#FFF',
     marginBottom: 12,
+    marginTop: 16,
   },
   errorMessage: {
     fontSize: 16,
@@ -564,7 +731,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   sessionInfo: {
     flexDirection: 'row',
@@ -600,7 +772,11 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
   },
-  fullscreenButton: {
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerButton: {
     backgroundColor: 'rgba(0,0,0,0.5)',
     padding: 12,
     borderRadius: 8,
@@ -622,17 +798,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#000',
   },
+  loadingContent: {
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
   loadingText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
     color: '#FFF',
-    marginTop: 16,
+    marginTop: 20,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   controlPanel: {
     backgroundColor: 'rgba(0,0,0,0.8)',
     paddingHorizontal: 20,
     paddingVertical: 24,
     paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   controlsRow: {
     flexDirection: 'row',
