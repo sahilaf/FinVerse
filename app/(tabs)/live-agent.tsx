@@ -33,6 +33,8 @@ import {
   Shield,
   MessageCircle,
   Star,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
 import { useTavusConversation } from '@/hooks/useTavusConversation';
@@ -122,10 +124,26 @@ export default function LiveAgent() {
       return;
     }
 
+    // Check configuration
     if (!TAVUS_CONFIG.apiKey) {
       Alert.alert(
         'Configuration Required',
-        'Tavus API key is required. Please add EXPO_PUBLIC_TAVUS_API_KEY to your environment variables.',
+        'Tavus API key is missing. Please add EXPO_PUBLIC_TAVUS_API_KEY to your environment variables.\n\nYou can get your API key from the Tavus dashboard.',
+        [
+          { text: 'OK' },
+          { 
+            text: 'Learn More', 
+            onPress: () => console.log('Visit: https://platform.tavus.io/') 
+          }
+        ]
+      );
+      return;
+    }
+
+    if (!TAVUS_CONFIG.replicaId || !TAVUS_CONFIG.personaId) {
+      Alert.alert(
+        'Configuration Required',
+        'Tavus Replica ID and Persona ID are required. Please check your environment variables:\n\n• EXPO_PUBLIC_TAVUS_REPLICA_ID\n• EXPO_PUBLIC_TAVUS_PERSONA_ID',
         [{ text: 'OK' }]
       );
       return;
@@ -141,7 +159,21 @@ export default function LiveAgent() {
         conversationName: `Financial Consultation - ${user.name}`,
       });
     } catch (error: any) {
-      Alert.alert('Connection Failed', error.message);
+      console.error('Connection failed:', error);
+      
+      // Provide user-friendly error messages
+      let userMessage = error.message;
+      if (error.message.includes('401') || error.message.includes('Invalid API key')) {
+        userMessage = 'Invalid API key. Please check your Tavus configuration.';
+      } else if (error.message.includes('404') || error.message.includes('not found')) {
+        userMessage = 'Replica or Persona not found. Please check your Tavus IDs.';
+      } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+        userMessage = 'Too many requests. Please wait a moment and try again.';
+      } else if (error.message.includes('500') || error.message.includes('service')) {
+        userMessage = 'Tavus service is temporarily unavailable. Please try again later.';
+      }
+      
+      Alert.alert('Connection Failed', userMessage);
     }
   };
 
@@ -207,12 +239,29 @@ export default function LiveAgent() {
     return (
       <View style={styles.container}>
         <LinearGradient colors={['#EF4444', '#DC2626']} style={styles.errorContainer}>
-          <Bot size={48} color="#FFF" />
+          <AlertCircle size={48} color="#FFF" />
           <Text style={styles.errorTitle}>Connection Error</Text>
           <Text style={styles.errorMessage}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={handleConnect}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
-          </TouchableOpacity>
+          
+          <View style={styles.errorActions}>
+            <TouchableOpacity style={styles.retryButton} onPress={handleConnect}>
+              <RefreshCw size={20} color="#FFF" />
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.helpButton} 
+              onPress={() => {
+                Alert.alert(
+                  'Troubleshooting',
+                  'Common issues:\n\n• Check your internet connection\n• Verify Tavus API key is valid\n• Ensure Replica and Persona IDs are correct\n• Try again in a few moments',
+                  [{ text: 'OK' }]
+                );
+              }}
+            >
+              <Text style={styles.helpButtonText}>Get Help</Text>
+            </TouchableOpacity>
+          </View>
         </LinearGradient>
       </View>
     );
@@ -260,6 +309,14 @@ export default function LiveAgent() {
             domStorageEnabled={true}
             startInLoadingState={true}
             onLoadEnd={() => setWebViewLoaded(true)}
+            onError={(syntheticEvent) => {
+              const { nativeEvent } = syntheticEvent;
+              console.error('WebView error:', nativeEvent);
+              Alert.alert(
+                'WebView Error',
+                'Failed to load the conversation. Please check your internet connection and try again.'
+              );
+            }}
             renderLoading={() => (
               <View style={styles.webViewLoading}>
                 <View style={styles.loadingContent}>
@@ -289,25 +346,47 @@ export default function LiveAgent() {
             injectedJavaScript={`
               // Enhanced JavaScript injection for better UX
               (function() {
+                console.log('Tavus WebView JavaScript injection started');
+                
                 // Auto-fill user information if forms are present
                 function autoFillUserInfo() {
-                  const nameInputs = document.querySelectorAll('input[type="text"], input[placeholder*="name"], input[placeholder*="Name"]');
-                  nameInputs.forEach(input => {
-                    if (input.value === '' || input.placeholder.toLowerCase().includes('name')) {
-                      input.value = '${user?.name || 'User'}';
-                      input.dispatchEvent(new Event('input', { bubbles: true }));
-                      input.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                  });
-                  
-                  // Auto-click join/start buttons
-                  const joinButtons = document.querySelectorAll('button');
-                  joinButtons.forEach(button => {
-                    const text = button.textContent?.toLowerCase() || '';
-                    if (text.includes('join') || text.includes('start') || text.includes('continue')) {
-                      setTimeout(() => button.click(), 1000);
-                    }
-                  });
+                  try {
+                    // Look for name input fields
+                    const nameInputs = document.querySelectorAll('input[type="text"], input[placeholder*="name"], input[placeholder*="Name"], input[name*="name"]');
+                    nameInputs.forEach(input => {
+                      if (input.value === '' || input.placeholder.toLowerCase().includes('name')) {
+                        input.value = '${user?.name || 'User'}';
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log('Auto-filled name field:', input);
+                      }
+                    });
+                    
+                    // Look for email input fields
+                    const emailInputs = document.querySelectorAll('input[type="email"], input[placeholder*="email"], input[name*="email"]');
+                    emailInputs.forEach(input => {
+                      if (input.value === '') {
+                        input.value = '${user?.email || ''}';
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log('Auto-filled email field:', input);
+                      }
+                    });
+                    
+                    // Auto-click join/start/continue buttons
+                    setTimeout(() => {
+                      const buttons = document.querySelectorAll('button, [role="button"], input[type="submit"]');
+                      buttons.forEach(button => {
+                        const text = (button.textContent || button.value || '').toLowerCase();
+                        if (text.includes('join') || text.includes('start') || text.includes('continue') || text.includes('enter')) {
+                          console.log('Auto-clicking button:', button);
+                          button.click();
+                        }
+                      });
+                    }, 1000);
+                  } catch (error) {
+                    console.error('Error in autoFillUserInfo:', error);
+                  }
                 }
                 
                 // Run auto-fill after page loads
@@ -318,42 +397,108 @@ export default function LiveAgent() {
                 }
                 
                 // Re-run auto-fill when new content is added
-                const observer = new MutationObserver(autoFillUserInfo);
+                const observer = new MutationObserver((mutations) => {
+                  let shouldAutoFill = false;
+                  mutations.forEach(mutation => {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                      shouldAutoFill = true;
+                    }
+                  });
+                  if (shouldAutoFill) {
+                    setTimeout(autoFillUserInfo, 500);
+                  }
+                });
                 observer.observe(document.body, { childList: true, subtree: true });
                 
                 // Handle control messages from React Native
                 window.addEventListener('message', function(event) {
                   try {
                     const data = JSON.parse(event.data);
+                    console.log('Received message from React Native:', data);
+                    
                     switch(data.type) {
                       case 'toggleMute':
                         // Try to find and click mute button
-                        const muteBtn = document.querySelector('[data-testid="mute"], button[aria-label*="mute"], button[title*="mute"]');
-                        if (muteBtn) muteBtn.click();
+                        const muteSelectors = [
+                          '[data-testid="mute"]',
+                          'button[aria-label*="mute"]',
+                          'button[title*="mute"]',
+                          'button[aria-label*="Mute"]',
+                          'button[title*="Mute"]',
+                          '.mute-button',
+                          '#mute-btn'
+                        ];
+                        for (const selector of muteSelectors) {
+                          const btn = document.querySelector(selector);
+                          if (btn) {
+                            btn.click();
+                            console.log('Clicked mute button:', btn);
+                            break;
+                          }
+                        }
                         break;
+                        
                       case 'toggleVideo':
                         // Try to find and click video button
-                        const videoBtn = document.querySelector('[data-testid="video"], button[aria-label*="video"], button[title*="video"]');
-                        if (videoBtn) videoBtn.click();
+                        const videoSelectors = [
+                          '[data-testid="video"]',
+                          'button[aria-label*="video"]',
+                          'button[title*="video"]',
+                          'button[aria-label*="Video"]',
+                          'button[title*="Video"]',
+                          '.video-button',
+                          '#video-btn'
+                        ];
+                        for (const selector of videoSelectors) {
+                          const btn = document.querySelector(selector);
+                          if (btn) {
+                            btn.click();
+                            console.log('Clicked video button:', btn);
+                            break;
+                          }
+                        }
                         break;
+                        
                       case 'toggleVolume':
                         // Try to find and click volume button
-                        const volumeBtn = document.querySelector('[data-testid="volume"], button[aria-label*="volume"], button[title*="volume"]');
-                        if (volumeBtn) volumeBtn.click();
+                        const volumeSelectors = [
+                          '[data-testid="volume"]',
+                          'button[aria-label*="volume"]',
+                          'button[title*="volume"]',
+                          'button[aria-label*="Volume"]',
+                          'button[title*="Volume"]',
+                          '.volume-button',
+                          '#volume-btn'
+                        ];
+                        for (const selector of volumeSelectors) {
+                          const btn = document.querySelector(selector);
+                          if (btn) {
+                            btn.click();
+                            console.log('Clicked volume button:', btn);
+                            break;
+                          }
+                        }
                         break;
                     }
                   } catch (e) {
-                    console.log('Error handling message:', e);
+                    console.error('Error handling message:', e);
                   }
                 });
                 
                 // Send status updates to React Native
                 function sendStatus(type, data) {
-                  window.ReactNativeWebView?.postMessage(JSON.stringify({ type, ...data }));
+                  if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ type, ...data }));
+                  }
                 }
                 
                 // Monitor for conversation events
-                setTimeout(() => sendStatus('conversationStarted', {}), 2000);
+                setTimeout(() => {
+                  sendStatus('conversationStarted', {});
+                  console.log('Sent conversationStarted event');
+                }, 3000);
+                
+                console.log('Tavus WebView JavaScript injection completed');
               })();
               true;
             `}
@@ -446,6 +591,41 @@ export default function LiveAgent() {
                 </Text>
               </View>
             )}
+          </View>
+
+          {/* Configuration Status */}
+          <View style={styles.configSection}>
+            <View style={[
+              styles.configItem,
+              TAVUS_CONFIG.apiKey ? styles.configValid : styles.configInvalid
+            ]}>
+              <View style={styles.configIcon}>
+                {TAVUS_CONFIG.apiKey ? (
+                  <Shield size={16} color="#10B981" />
+                ) : (
+                  <AlertCircle size={16} color="#EF4444" />
+                )}
+              </View>
+              <Text style={styles.configText}>
+                API Key: {TAVUS_CONFIG.apiKey ? 'Configured' : 'Missing'}
+              </Text>
+            </View>
+            
+            <View style={[
+              styles.configItem,
+              TAVUS_CONFIG.replicaId ? styles.configValid : styles.configInvalid
+            ]}>
+              <View style={styles.configIcon}>
+                {TAVUS_CONFIG.replicaId ? (
+                  <Bot size={16} color="#10B981" />
+                ) : (
+                  <AlertCircle size={16} color="#EF4444" />
+                )}
+              </View>
+              <Text style={styles.configText}>
+                Replica: {TAVUS_CONFIG.replicaId ? 'Ready' : 'Missing'}
+              </Text>
+            </View>
           </View>
 
           {/* Features */}
@@ -554,7 +734,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   headerIcon: {
     width: 80,
@@ -595,8 +775,38 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: '#FFF',
   },
+  configSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    gap: 12,
+  },
+  configItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  configValid: {
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  configInvalid: {
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  configIcon: {
+    marginRight: 8,
+  },
+  configText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: 'rgba(255,255,255,0.8)',
+  },
   featuresSection: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   featureCard: {
     backgroundColor: 'rgba(255,255,255,0.1)',
@@ -621,7 +831,7 @@ const styles = StyleSheet.create({
   },
   connectionSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   connectButton: {
     borderRadius: 16,
@@ -711,14 +921,35 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
     textAlign: 'center',
     marginBottom: 24,
+    lineHeight: 24,
+  },
+  errorActions: {
+    flexDirection: 'row',
+    gap: 12,
   },
   retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.2)',
     paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     borderRadius: 12,
+    gap: 8,
   },
   retryButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFF',
+  },
+  helpButton: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  helpButtonText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#FFF',

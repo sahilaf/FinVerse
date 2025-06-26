@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { Platform } from 'react-native';
 
 interface TavusConversationState {
   isConnected: boolean;
@@ -31,26 +30,33 @@ export function useTavusConversation() {
     setState((prev) => ({ ...prev, isConnecting: true, error: null }));
 
     try {
-      // Create conversation with enhanced configuration
-      const conversationPayload: any = {
-        replica_id: config.replicaId,
-        persona_id: config.personaId,
-      };
-
-      // Add optional parameters if provided
-      if (config.conversationName) {
-        conversationPayload.conversation_name = config.conversationName;
+      // Validate required configuration
+      if (!config.apiKey) {
+        throw new Error('Tavus API key is required');
+      }
+      if (!config.replicaId) {
+        throw new Error('Replica ID is required');
+      }
+      if (!config.personaId) {
+        throw new Error('Persona ID is required');
       }
 
-      // Add custom properties for better UX
-      conversationPayload.properties = {
-        participant_name: config.userName || 'User',
-        participant_email: config.userEmail || '',
-        session_type: 'financial_consultation',
-        auto_start: true,
-        hide_participant_name_input: true,
-        custom_greeting: `Hello ${config.userName || 'there'}! I'm your AI financial advisor. I'm here to help you with any financial questions or guidance you need.`
+      console.log('Creating Tavus conversation with config:', {
+        replicaId: config.replicaId,
+        personaId: config.personaId,
+        userName: config.userName,
+        hasApiKey: !!config.apiKey
+      });
+
+      // Create conversation with the exact format expected by Tavus API
+      const conversationPayload = {
+        replica_id: config.replicaId,
+        persona_id: config.personaId,
+        // Add optional conversation name if provided
+        ...(config.conversationName && { conversation_name: config.conversationName })
       };
+
+      console.log('Sending payload to Tavus API:', conversationPayload);
 
       const response = await fetch('https://tavusapi.com/v2/conversations', {
         method: 'POST',
@@ -61,27 +67,68 @@ export function useTavusConversation() {
         body: JSON.stringify(conversationPayload),
       });
 
+      console.log('Tavus API response status:', response.status);
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to create conversation: ${response.statusText}`);
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        
+        try {
+          const errorData = await response.json();
+          console.log('Tavus API error response:', errorData);
+          
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          } else if (errorData.detail) {
+            errorMessage = errorData.detail;
+          }
+        } catch (parseError) {
+          console.log('Could not parse error response:', parseError);
+        }
+
+        // Provide more specific error messages based on status codes
+        if (response.status === 401) {
+          errorMessage = 'Invalid API key. Please check your Tavus API configuration.';
+        } else if (response.status === 404) {
+          errorMessage = 'Replica or Persona not found. Please check your IDs.';
+        } else if (response.status === 429) {
+          errorMessage = 'Rate limit exceeded. Please try again in a moment.';
+        } else if (response.status >= 500) {
+          errorMessage = 'Tavus service is temporarily unavailable. Please try again later.';
+        }
+
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      console.log('Tavus API success response:', data);
 
-      // Enhance the conversation URL with auto-join parameters
+      if (!data.conversation_url) {
+        throw new Error('No conversation URL received from Tavus API');
+      }
+
+      // Enhance the conversation URL with user context
       let enhancedUrl = data.conversation_url;
-      if (enhancedUrl) {
+      try {
         const url = new URL(enhancedUrl);
         
         // Add URL parameters to improve UX
         if (config.userName) {
-          url.searchParams.set('name', config.userName);
+          url.searchParams.set('participant_name', config.userName);
         }
-        url.searchParams.set('autoJoin', 'true');
-        url.searchParams.set('hideNameInput', 'true');
-        url.searchParams.set('theme', 'financial');
+        if (config.userEmail) {
+          url.searchParams.set('participant_email', config.userEmail);
+        }
+        
+        // Add parameters to streamline the experience
+        url.searchParams.set('auto_start', 'true');
+        url.searchParams.set('hide_branding', 'true');
         
         enhancedUrl = url.toString();
+      } catch (urlError) {
+        console.warn('Could not enhance URL:', urlError);
+        // Use original URL if enhancement fails
       }
 
       setState((prev) => ({
@@ -94,22 +141,25 @@ export function useTavusConversation() {
 
       return data;
     } catch (error: any) {
+      console.error('Tavus conversation creation failed:', error);
+      
       setState((prev) => ({
         ...prev,
         isConnecting: false,
-        error: error.message || 'Failed to start conversation',
+        error: error.message || 'Failed to start conversation with AI advisor',
       }));
+      
       throw error;
     }
   }, []);
 
   const endConversation = useCallback(async (conversationId?: string) => {
-    // Optionally call Tavus API to properly end the conversation
-    if (conversationId && state.conversationId) {
+    const targetId = conversationId || state.conversationId;
+    
+    if (targetId) {
       try {
-        // Note: This endpoint might not exist in Tavus API, but it's good practice
-        // to properly clean up resources when possible
-        console.log('Ending conversation:', conversationId);
+        console.log('Ending Tavus conversation:', targetId);
+        // Note: Tavus might not have an explicit end endpoint, but we log for debugging
       } catch (error) {
         console.warn('Failed to properly end conversation:', error);
       }
