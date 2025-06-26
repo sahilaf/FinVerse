@@ -731,7 +731,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: 'rgba(255,255,255,0.7)',
     lineHeight: 20,
-    marginTop: 48
   },
   connectionSection: {
     alignItems: 'center',
