@@ -12,7 +12,7 @@ import {
   ImageBackground,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+import { WebView } from 'react-native-webview';
 import {
   Video,
   VideoOff,
@@ -33,20 +33,28 @@ import {
   Shield,
 } from 'lucide-react-native';
 import { useUserData } from '@/hooks/useUserData';
-import { useLiveKitConnection } from '@/hooks/useLiveKitConnection';
-import LiveKitRoom from '@/components/LiveKitRoom';
+import { useTavusConversation } from '@/hooks/useTavusConversation';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-// Configuration for your LiveKit server
-const LIVEKIT_CONFIG = {
-  serverUrl: process.env.EXPO_PUBLIC_LIVEKIT_URL || 'wss://finverse-kev4ntpv.livekit.cloud/api/create-room',
-  apiKey: process.env.EXPO_PUBLIC_LIVEKIT_API_KEY,
+// Configuration for Tavus API
+const TAVUS_CONFIG = {
+  apiKey: process.env.EXPO_PUBLIC_TAVUS_API_KEY || '',
+  replicaId: process.env.EXPO_PUBLIC_TAVUS_REPLICA_ID || 'r4d9b2288937',
+  personaId: process.env.EXPO_PUBLIC_TAVUS_PERSONA_ID || 'p59e5e593b7e',
 };
 
 export default function LiveAgent() {
   const { user } = useUserData();
-  const { isConnected, isConnecting, error, roomUrl, token, connect, disconnect } = useLiveKitConnection();
+  const { 
+    isConnected, 
+    isConnecting, 
+    error, 
+    conversationUrl, 
+    conversationId, 
+    startConversation, 
+    endConversation 
+  } = useTavusConversation();
   
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -55,6 +63,7 @@ export default function LiveAgent() {
   const [sessionDuration, setSessionDuration] = useState(0);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const webViewRef = useRef<WebView>(null);
 
   // Session timer
   useEffect(() => {
@@ -89,27 +98,20 @@ export default function LiveAgent() {
       return;
     }
 
-    if (Platform.OS === 'web') {
+    if (!TAVUS_CONFIG.apiKey) {
       Alert.alert(
-        'Tavus + LiveKit Integration',
-        'This connects to your external Tavus + Gemini agent running on LiveKit.\n\nIn production:\n• Real-time video with Tavus avatars\n• Gemini-powered financial advice\n• LiveKit WebRTC infrastructure\n• Secure room-based sessions',
-        [
-          { text: 'Learn More', onPress: () => console.log('Learn more about integration') },
-          { text: 'Demo Connection', onPress: startDemoConnection }
-        ]
+        'Configuration Required',
+        'Tavus API key is required. Please add EXPO_PUBLIC_TAVUS_API_KEY to your environment variables.',
+        [{ text: 'OK' }]
       );
-    } else {
-      startDemoConnection();
+      return;
     }
-  };
 
-  const startDemoConnection = async () => {
     try {
-      await connect({
-        serverUrl: LIVEKIT_CONFIG.serverUrl,
-        apiKey: LIVEKIT_CONFIG.apiKey,
-        userId: user?.id || 'anonymous',
-        userName: user?.name || 'User',
+      await startConversation({
+        apiKey: TAVUS_CONFIG.apiKey,
+        replicaId: TAVUS_CONFIG.replicaId,
+        personaId: TAVUS_CONFIG.personaId,
       });
     } catch (error: any) {
       Alert.alert('Connection Failed', error.message);
@@ -126,7 +128,7 @@ export default function LiveAgent() {
           text: 'End Session',
           style: 'destructive',
           onPress: () => {
-            disconnect();
+            endConversation();
           }
         }
       ]
@@ -135,17 +137,35 @@ export default function LiveAgent() {
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
-    // In real implementation, this would control LiveKit audio
+    // Send mute command to WebView
+    if (webViewRef.current) {
+      webViewRef.current.postMessage(JSON.stringify({
+        type: 'toggleMute',
+        muted: !isMuted
+      }));
+    }
   };
 
   const toggleVideo = () => {
     setIsVideoEnabled(!isVideoEnabled);
-    // In real implementation, this would control LiveKit video
+    // Send video toggle command to WebView
+    if (webViewRef.current) {
+      webViewRef.current.postMessage(JSON.stringify({
+        type: 'toggleVideo',
+        enabled: !isVideoEnabled
+      }));
+    }
   };
 
   const toggleVolume = () => {
     setIsVolumeOn(!isVolumeOn);
-    // In real implementation, this would control audio output
+    // Send volume toggle command to WebView
+    if (webViewRef.current) {
+      webViewRef.current.postMessage(JSON.stringify({
+        type: 'toggleVolume',
+        enabled: !isVolumeOn
+      }));
+    }
   };
 
   const toggleFullscreen = () => {
@@ -166,104 +186,126 @@ export default function LiveAgent() {
     );
   }
 
-  if (isConnected && roomUrl && token) {
+  if (isConnected && conversationUrl) {
     return (
       <View style={styles.container}>
-        <LiveKitRoom roomUrl={roomUrl} token={token} onDisconnect={disconnect}>
-          {/* Session Header */}
-          <View style={styles.sessionHeader}>
-            <View style={styles.sessionInfo}>
-              <View style={styles.liveBadge}>
-                <View style={styles.liveDot} />
-                <Text style={styles.liveText}>LIVE</Text>
-              </View>
-              <Text style={styles.sessionTime}>{formatTime(sessionDuration)}</Text>
+        {/* Session Header */}
+        <View style={styles.sessionHeader}>
+          <View style={styles.sessionInfo}>
+            <View style={styles.liveBadge}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>LIVE</Text>
             </View>
-            
-            <TouchableOpacity style={styles.fullscreenButton} onPress={toggleFullscreen}>
-              {isFullscreen ? (
-                <Minimize2 size={20} color="#FFF" />
+            <Text style={styles.sessionTime}>{formatTime(sessionDuration)}</Text>
+          </View>
+          
+          <TouchableOpacity style={styles.fullscreenButton} onPress={toggleFullscreen}>
+            {isFullscreen ? (
+              <Minimize2 size={20} color="#FFF" />
+            ) : (
+              <Maximize2 size={20} color="#FFF" />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Tavus Conversation WebView */}
+        <View style={styles.conversationContainer}>
+          <WebView
+            ref={webViewRef}
+            source={{ uri: conversationUrl }}
+            style={styles.webView}
+            allowsInlineMediaPlayback={true}
+            mediaPlaybackRequiresUserAction={false}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            startInLoadingState={true}
+            renderLoading={() => (
+              <View style={styles.webViewLoading}>
+                <ActivityIndicator size="large" color="#10B981" />
+                <Text style={styles.loadingText}>Connecting to your AI advisor...</Text>
+              </View>
+            )}
+            onMessage={(event) => {
+              try {
+                const data = JSON.parse(event.nativeEvent.data);
+                console.log('WebView message:', data);
+                // Handle messages from the Tavus conversation if needed
+              } catch (error) {
+                console.log('WebView message (raw):', event.nativeEvent.data);
+              }
+            }}
+            injectedJavaScript={`
+              // Inject JavaScript to handle controls
+              window.addEventListener('message', function(event) {
+                const data = JSON.parse(event.data);
+                switch(data.type) {
+                  case 'toggleMute':
+                    // Handle mute toggle in Tavus interface
+                    break;
+                  case 'toggleVideo':
+                    // Handle video toggle in Tavus interface
+                    break;
+                  case 'toggleVolume':
+                    // Handle volume toggle in Tavus interface
+                    break;
+                }
+              });
+              true;
+            `}
+          />
+        </View>
+
+        {/* Control Panel */}
+        <View style={styles.controlPanel}>
+          <View style={styles.controlsRow}>
+            <TouchableOpacity
+              style={[styles.controlButton, isMuted && styles.mutedButton]}
+              onPress={toggleMute}
+            >
+              {isMuted ? (
+                <MicOff size={24} color="#FFF" />
               ) : (
-                <Maximize2 size={20} color="#FFF" />
+                <Mic size={24} color="#FFF" />
               )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.controlButton, !isVideoEnabled && styles.disabledButton]}
+              onPress={toggleVideo}
+            >
+              {isVideoEnabled ? (
+                <Video size={24} color="#FFF" />
+              ) : (
+                <VideoOff size={24} color="#FFF" />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.controlButton, !isVolumeOn && styles.disabledButton]}
+              onPress={toggleVolume}
+            >
+              {isVolumeOn ? (
+                <Volume2 size={24} color="#FFF" />
+              ) : (
+                <VolumeX size={24} color="#FFF" />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.endCallButton}
+              onPress={handleDisconnect}
+            >
+              <PhoneOff size={24} color="#FFF" />
             </TouchableOpacity>
           </View>
 
-          {/* Tavus Avatar Display Area */}
-          <View style={styles.avatarContainer}>
-            <LinearGradient
-              colors={['#10B981', '#059669']}
-              style={styles.avatarPlaceholder}
-            >
-              <Bot size={48} color="#FFF" />
-              <Text style={styles.avatarName}>Sarah - AI Financial Advisor</Text>
-              <Text style={styles.avatarStatus}>Powered by Tavus + Gemini</Text>
-            </LinearGradient>
+          <View style={styles.sessionDetails}>
+            <Text style={styles.sessionTitle}>Live Financial Consultation</Text>
+            <Text style={styles.sessionDescription}>
+              Real-time advice from your AI financial advisor
+            </Text>
           </View>
-
-          {/* User Video (Picture-in-Picture) */}
-          {isVideoEnabled && (
-            <View style={styles.userVideoContainer}>
-              <View style={styles.userVideoPlaceholder}>
-                <Text style={styles.userInitial}>
-                  {user?.name?.charAt(0) || 'U'}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Control Panel */}
-          <View style={styles.controlPanel}>
-            <View style={styles.controlsRow}>
-              <TouchableOpacity
-                style={[styles.controlButton, isMuted && styles.mutedButton]}
-                onPress={toggleMute}
-              >
-                {isMuted ? (
-                  <MicOff size={24} color="#FFF" />
-                ) : (
-                  <Mic size={24} color="#FFF" />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.controlButton, !isVideoEnabled && styles.disabledButton]}
-                onPress={toggleVideo}
-              >
-                {isVideoEnabled ? (
-                  <Video size={24} color="#FFF" />
-                ) : (
-                  <VideoOff size={24} color="#FFF" />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.controlButton, !isVolumeOn && styles.disabledButton]}
-                onPress={toggleVolume}
-              >
-                {isVolumeOn ? (
-                  <Volume2 size={24} color="#FFF" />
-                ) : (
-                  <VolumeX size={24} color="#FFF" />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.endCallButton}
-                onPress={handleDisconnect}
-              >
-                <PhoneOff size={24} color="#FFF" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.sessionDetails}>
-              <Text style={styles.sessionTitle}>Live Financial Consultation</Text>
-              <Text style={styles.sessionDescription}>
-                Real-time advice from your AI financial advisor
-              </Text>
-            </View>
-          </View>
-        </LiveKitRoom>
+        </View>
       </View>
     );
   }
@@ -277,85 +319,86 @@ export default function LiveAgent() {
         style={styles.backgroundImage}
         resizeMode="cover"
       >
-          <LinearGradient
-            colors={['rgba(16, 185, 129, 0.1)', 'rgba(6, 95, 70, 0.3)']}
-            style={styles.overlay}
-          >
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.headerIcon}>
-                <Bot size={32} color="#FFF" />
-              </View>
-              <Text style={styles.headerTitle}>AI Financial Advisor</Text>
-              <Text style={styles.headerSubtitle}>
-                Connect with Tavus-powered AI for personalized financial guidance
+        <LinearGradient
+          colors={['rgba(16, 185, 129, 0.1)', 'rgba(6, 95, 70, 0.3)']}
+          style={styles.overlay}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerIcon}>
+              <Bot size={32} color="#FFF" />
+            </View>
+            <Text style={styles.headerTitle}>AI Financial Advisor</Text>
+            <Text style={styles.headerSubtitle}>
+              Connect with Tavus-powered AI for personalized financial guidance
+            </Text>
+          </View>
+
+          {/* Features */}
+          <View style={styles.featuresSection}>
+            <View style={styles.featureCard}>
+              <Sparkles size={24} color="#10B981" />
+              <Text style={styles.featureTitle}>Real-Time Video</Text>
+              <Text style={styles.featureDescription}>
+                Face-to-face conversation with lifelike AI avatar
               </Text>
             </View>
-
-            {/* Features */}
-            <View style={styles.featuresSection}>
-              <View style={styles.featureCard}>
-                <Sparkles size={24} color="#10B981" />
-                <Text style={styles.featureTitle}>Real-Time Video</Text>
-                <Text style={styles.featureDescription}>
-                  Face-to-face conversation with lifelike AI avatar
-                </Text>
-              </View>
-              
-              <View style={styles.featureCard}>
-                <Zap size={24} color="#F59E0B" />
-                <Text style={styles.featureTitle}>Gemini-Powered</Text>
-                <Text style={styles.featureDescription}>
-                  Advanced AI understanding for complex financial questions
-                </Text>
-              </View>
-              
-              <View style={styles.featureCard}>
-                <Shield size={24} color="#3B82F6" />
-                <Text style={styles.featureTitle}>Secure & Private</Text>
-                <Text style={styles.featureDescription}>
-                  End-to-end encrypted sessions via LiveKit infrastructure
-                </Text>
-              </View>
+            
+            <View style={styles.featureCard}>
+              <Zap size={24} color="#F59E0B" />
+              <Text style={styles.featureTitle}>AI-Powered</Text>
+              <Text style={styles.featureDescription}>
+                Advanced AI understanding for complex financial questions
+              </Text>
             </View>
+            
+            <View style={styles.featureCard}>
+              <Shield size={24} color="#3B82F6" />
+              <Text style={styles.featureTitle}>Secure & Private</Text>
+              <Text style={styles.featureDescription}>
+                End-to-end encrypted sessions via Tavus infrastructure
+              </Text>
+            </View>
+          </View>
 
-            {/* Connection Button */}
-            <View style={styles.connectionSection}>
-              <TouchableOpacity
-                style={[styles.connectButton, isConnecting && styles.disabledConnectButton]}
-                onPress={handleConnect}
-                disabled={isConnecting}
+          {/* Connection Button */}
+          <View style={styles.connectionSection}>
+            <TouchableOpacity
+              style={[styles.connectButton, isConnecting && styles.disabledConnectButton]}
+              onPress={handleConnect}
+              disabled={isConnecting}
+            >
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                style={styles.connectButtonGradient}
               >
-                <LinearGradient
-                  colors={['#10B981', '#059669']}
-                  style={styles.connectButtonGradient}
-                >
-                  {isConnecting ? (
-                    <ActivityIndicator color="#FFF" size="small" />
-                  ) : (
-                    <>
-                      <Phone size={24} color="#FFF" />
-                      <Text style={styles.connectButtonText}>Start Live Session</Text>
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
+                {isConnecting ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <>
+                    <Phone size={24} color="#FFF" />
+                    <Text style={styles.connectButtonText}>Start Live Session</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
 
-              <Text style={styles.connectionNote}>
-                {isConnecting ? 'Connecting to your AI advisor...' : 'Average session: 15-30 minutes'}
-              </Text>
-            </View>
+            <Text style={styles.connectionNote}>
+              {isConnecting ? 'Connecting to your AI advisor...' : 'Average session: 15-30 minutes'}
+            </Text>
+          </View>
 
-            {/* Technical Info */}
-            <View style={styles.techInfo}>
-              <Text style={styles.techTitle}>Powered by Advanced AI</Text>
-              <Text style={styles.techDescription}>
-                • Tavus: Realistic AI avatars with natural expressions{'\n'}
-                • Gemini: Google's most capable AI model{'\n'}
-                • LiveKit: Enterprise-grade WebRTC infrastructure
-              </Text>
-            </View>
-          </LinearGradient>
+          {/* Technical Info */}
+          <View style={styles.techInfo}>
+            <Text style={styles.techTitle}>Powered by Tavus AI</Text>
+            <Text style={styles.techDescription}>
+              • Realistic AI avatars with natural expressions{'\n'}
+              • Advanced conversational AI capabilities{'\n'}
+              • Real-time video communication{'\n'}
+              • Secure and private conversations
+            </Text>
+          </View>
+        </LinearGradient>
       </ImageBackground>
     </ScrollView>
   );
@@ -562,56 +605,28 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
   },
-  avatarContainer: {
+  conversationContainer: {
     flex: 1,
+    backgroundColor: '#000',
+  },
+  webView: {
+    flex: 1,
+  },
+  webViewLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    backgroundColor: '#000',
   },
-  avatarPlaceholder: {
-    width: '100%',
-    height: '80%',
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  avatarName: {
-    fontSize: 24,
-    fontFamily: 'Poppins-Bold',
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
     color: '#FFF',
     marginTop: 16,
-    textAlign: 'center',
-  },
-  avatarStatus: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  userVideoContainer: {
-    position: 'absolute',
-    top: 120,
-    right: 20,
-    width: 120,
-    height: 160,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#FFF',
-  },
-  userVideoPlaceholder: {
-    flex: 1,
-    backgroundColor: '#374151',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  userInitial: {
-    fontSize: 24,
-    fontFamily: 'Poppins-Bold',
-    color: '#FFF',
   },
   controlPanel: {
     backgroundColor: 'rgba(0,0,0,0.8)',
